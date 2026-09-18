@@ -20,7 +20,7 @@ public class FeedEntity {
     private Instant endTime;
 
     protected FeedEntity() {
-        // requis par JPA
+        throw new UnsupportedOperationException("This is a Entity class and cannot be instantiated");
     }
 
     public FeedEntity(Long id, BreastSideEntity breastSide, Instant startTime, Instant endTime) {

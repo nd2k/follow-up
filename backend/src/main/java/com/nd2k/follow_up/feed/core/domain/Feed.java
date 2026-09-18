@@ -23,10 +23,6 @@ public class Feed {
         return new Feed(null, breastSide, startTime, null);
     }
 
-    public static Feed getFeedFromPersistence(Long id, BreastSide breastSide, Instant startTime, Instant endTime) {
-        return new Feed(id, breastSide, startTime, endTime);
-    }
-
     public Feed stopFeed(Instant endTime) {
         if (this.endTime != null) {
             throw new IllegalStateException("This feed is already finished");
