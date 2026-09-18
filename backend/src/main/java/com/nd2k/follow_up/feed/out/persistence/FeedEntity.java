@@ -13,15 +13,15 @@ public class FeedEntity {
     private Long id;
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private final BreastSideEntity breastSide;
+    private BreastSideEntity breastSide;
     @Column(nullable = false)
-    private final Instant startTime;
+    private Instant startTime;
     @Column
-    private final Instant endTime;
+    private Instant endTime;
 
     @SuppressWarnings("unused")
     protected FeedEntity() {
-        throw new UnsupportedOperationException("This is a Entity class and cannot be instantiated");
+        // required by JPA
     }
 
     public FeedEntity(Long id, BreastSideEntity breastSide, Instant startTime, Instant endTime) {
