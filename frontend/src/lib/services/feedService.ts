@@ -1,7 +1,7 @@
 import { apiFetch } from "./clientService";
 import type { FeedResponse, BreastSide } from "#lib/types/feed.ts";
 
-const API_URI: string = import.meta.env.VITE_API_BASE ?? "/api/v1/feeds";
+const API_URI: string = import.meta.env.VITE_API_URI ?? "/api/v1/feeds";
 
 export function startFeed(breastSide: BreastSide): Promise<FeedResponse> {
   return apiFetch<FeedResponse>(`${API_URI}/start`, {
