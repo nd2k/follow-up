@@ -1,6 +1,6 @@
 import type { AuthTokens } from "#lib/types/auth.ts";
 
-const ROOT_BASE = import.meta.env.VITE_API_ROOT ?? "http://localhost:8080";
+const ROOT_BASE = import.meta.env.VITE_API_BASE?? "http://localhost:8080";
 
 async function handle(res: Response): Promise<AuthTokens> {
   if (!res.ok) {
