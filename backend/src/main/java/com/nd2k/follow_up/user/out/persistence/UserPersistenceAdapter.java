@@ -16,8 +16,8 @@ class UserPersistenceAdapter implements UserRepositoryPort {
     }
 
     @Override
-    public User save(User user) {
-        return UserMapper.toDomain(jpaRepository.save(UserMapper.toEntity(user)));
+    public void save(User user) {
+        UserMapper.toDomain(jpaRepository.save(UserMapper.toEntity(user)));
     }
 
     @Override

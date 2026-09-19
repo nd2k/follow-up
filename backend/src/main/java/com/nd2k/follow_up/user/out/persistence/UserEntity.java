@@ -19,6 +19,7 @@ public class UserEntity {
     @Column(nullable = false)
     private String name;
 
+    @SuppressWarnings("unused")
     protected UserEntity() {}
 
     public UserEntity(Long id, String email, String passwordHash, String name) {
