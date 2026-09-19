@@ -1,20 +1,32 @@
-const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8080/api/v1";
-const API_KEY = import.meta.env.VITE_API_KEY ?? "c69712dd20875b58b75cc85f70dc606e315493f3808dd45b9d3f05aae5d8568b";
+import { auth } from "#lib/stores/auth.svelte.ts";
 
-export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${API_BASE}${path}`, {
+const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8080";
+
+async function rawFetch(path: string, options: RequestInit): Promise<Response> {
+  return fetch(`${API_BASE}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
-      "X-API-Key": API_KEY,
+      ...(auth.accessToken ? { Authorization: `Bearer ${auth.accessToken}` } : {}),
       ...options.headers,
     },
   });
+}
 
+export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+  let res = await rawFetch(path, options);
+  console.log(res);
+  
+  if (res.status === 401) {
+    const refreshed = await auth.tryRefresh();
+    if (refreshed) {
+      res = await rawFetch(path, options);
+    }
+  }
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error ?? `Erreur ${res.status}`);
   }
-
   return res.status === 204 ? (undefined as T) : res.json();
 }
+

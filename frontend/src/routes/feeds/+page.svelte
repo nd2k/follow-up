@@ -3,6 +3,7 @@
   import { ongoingFeed } from "#lib/stores/ongoingFeed.svelte.ts";
   import { listFeeds, deleteFeed } from "#lib/services/feedService.ts";
   import { getStatsToday } from "#lib/services/statService.ts";
+  import { checkHealth } from "#lib/services/healthService.ts";
   import type { FeedResponse, BreastSide, StatsResponse } from "#lib/types/feed.ts";
 
   import SidePicker from "#lib/components/SidePicker.svelte";
@@ -13,6 +14,19 @@
   let pendingSide = $state<BreastSide | null>(null);
   let stats = $state<StatsResponse | null>(null);
   let finishedFeeds = $state<FeedResponse[]>([]);
+  let backendStatus = $state<"waking" | "ready" | "error">("waking");
+
+  async function wakeBackend() {
+    try {
+      console.log('wakeup')
+      await checkHealth();
+      console.log('wakeup ok');
+      backendStatus = "ready";
+    } catch(error) {
+      console.error(error)
+      backendStatus = "error";
+    }
+  }
 
   async function refreshHistoryAndStats() {
     const [feeds, statsResult] = await Promise.all([listFeeds(), getStatsToday()]);
@@ -37,12 +51,24 @@
   }
 
   onMount(async () => {
+    await wakeBackend();
     await ongoingFeed.init();
     await refreshHistoryAndStats();
   });
 </script>
 
 <main>
+  {#if backendStatus === "waking"}
+    <div class="status-banner">
+      <span class="spinner"></span>
+      Réveil du serveur, un instant…
+    </div>
+  {:else if backendStatus === "error"}
+    <div class="status-banner error">
+      Connexion impossible — réessaie dans quelques secondes.
+      <button onclick={wakeBackend}>Réessayer</button>
+    </div>
+  {/if}
   <h1>Suivi des tétées</h1>
 
   <SidePicker bind:selected={pendingSide} disabled={!!ongoingFeed.current} />

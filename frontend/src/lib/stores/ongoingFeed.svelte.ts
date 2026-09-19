@@ -21,9 +21,21 @@ export const ongoingFeed = {
   },
 
   async start(breastSide: BreastSide) {
+    const optimisticFeed: FeedResponse = {
+      id: -1,
+      breastSide,
+      startTime: new Date().toISOString(),
+      endTime: null,
+      ongoing: true,
+      durationMinutes: null,
+    };
+    feed = optimisticFeed;
     loading = true;
     try {
       feed = await startFeed(breastSide);
+    }catch(error) {
+      feed = null;
+      throw error;
     } finally {
       loading = false;
     }

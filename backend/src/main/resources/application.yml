@@ -23,3 +23,12 @@ server:
 app:
   cors:
     allowed-origin: ${CORS_ALLOWED_ORIGIN}
+  security:
+    jwt-secret: ${JWT_SECRET}
+  seed:
+    user1-email: ${USER1_EMAIL}
+    user1-password: ${USER1_PASSWORD}
+    user1-name: ${USER1_NAME}
+    user2-email: ${USER2_EMAIL}
+    user2-password: ${USER2_PASSWORD}
+    user2-name: ${USER2_NAME}
