@@ -18,6 +18,7 @@ public class BabyEntity {
     @Column
     private LocalDate birthDate;
 
+    @SuppressWarnings("unused")
     protected BabyEntity() {}
 
     public BabyEntity(Long id, String name, LocalDate birthDate) {

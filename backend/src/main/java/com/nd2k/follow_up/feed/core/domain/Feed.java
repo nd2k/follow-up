@@ -26,10 +26,6 @@ public class Feed {
         return new Feed(null, babyId, breastSide, startTime, null);
     }
 
-    public static Feed reconstitute(Long id, Long babyId, BreastSide breastSide, Instant startTime, Instant endTime) {
-        return new Feed(id, babyId, breastSide, startTime, endTime);
-    }
-
     public Feed stopFeed(Instant endTime) {
         if (this.endTime != null) {
             throw new IllegalStateException("This feed is already finished");

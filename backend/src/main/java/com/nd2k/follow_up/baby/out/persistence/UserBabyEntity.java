@@ -16,6 +16,7 @@ public class UserBabyEntity {
     @Column(name = "baby_id", nullable = false)
     private Long babyId;
 
+    @SuppressWarnings("unused")
     protected UserBabyEntity() {}
 
     public UserBabyEntity(Long userId, Long babyId) {
