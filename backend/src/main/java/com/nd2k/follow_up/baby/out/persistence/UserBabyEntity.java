@@ -6,6 +6,7 @@ import jakarta.persistence.*;
 @Table(name = "user_baby", uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "baby_id"}))
 public class UserBabyEntity {
 
+    @SuppressWarnings("unused")
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
