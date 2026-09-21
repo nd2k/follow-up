@@ -11,7 +11,7 @@ jobs:
     steps:
       - name: Ping health endpoint
         run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" https://follow-up-cciu.onrender.com//health)
+          response=$(curl -s -o /dev/null -w "%{http_code}" https://follow-up-cciu.onrender.com/health)
           if [ "$response" != "200" ]; then
             echo "Réponse inattendue : $response"
             exit 1
