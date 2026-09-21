@@ -10,10 +10,10 @@ export const ongoingFeed = {
   get isLoading() { return loading; },
   get hasSyncError() { return syncError; },
 
-  async init() {
+  async init(babyId: number) {
     loading = true;
     try {
-      const feeds = await listFeeds();
+      const feeds = await listFeeds(babyId);
       if (feeds !== null) {
         feed = feeds.find((f) => Boolean(f.ongoing)) ?? null;
       }
@@ -22,10 +22,11 @@ export const ongoingFeed = {
     }
   },
 
-  async start(breastSide: BreastSide) {
+  async start(babyId: number, breastSide: BreastSide) {
     const clientStartTime = new Date().toISOString();
     feed = {
       id: -1,
+      babyId,
       breastSide,
       startTime: clientStartTime,
       endTime: null,
@@ -35,7 +36,7 @@ export const ongoingFeed = {
     loading = true;
     syncError = false;
     try {
-      feed = await startFeed(breastSide, clientStartTime);
+      feed = await startFeed(babyId, breastSide, clientStartTime);
     }catch(error) {
       syncError = true;
       throw error;
@@ -49,9 +50,9 @@ export const ongoingFeed = {
     loading = true;
     try {
       if (feed.id === -1) {
-        feed = await startFeedWithRetry(feed.breastSide, feed.startTime);
+        feed = await startFeedWithRetry(feed.babyId, feed.breastSide, feed.startTime);
       }
-      await stopFeedWithRetry(feed.id);
+      await stopFeedWithRetry(feed.babyId, feed.id);
       feed = null;
       syncError = false;
     } catch {

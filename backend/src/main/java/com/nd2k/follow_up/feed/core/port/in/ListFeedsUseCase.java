@@ -6,5 +6,5 @@ import java.util.List;
 
 public interface ListFeedsUseCase {
 
-    List<Feed> listAllFeed();
+    List<Feed> listAllFeed(Long babyId, Long requestingUserId);
 }

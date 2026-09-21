@@ -6,21 +6,28 @@ import java.util.Objects;
 public class Feed {
 
     private final Long id;
+    private final Long babyId;
     private final BreastSide breastSide;
     private final Instant startTime;
     private final Instant endTime;
 
-    public Feed(Long id, BreastSide breastSide, Instant startTime, Instant endTime) {
+    public Feed(Long id, Long babyId, BreastSide breastSide, Instant startTime, Instant endTime) {
         this.id = id;
+        this.babyId = babyId;
         this.breastSide = breastSide;
         this.startTime = startTime;
         this.endTime = endTime;
     }
 
-    public static Feed startFeed(BreastSide breastSide, Instant startTime) {
+    public static Feed startFeed(Long babyId, BreastSide breastSide, Instant startTime) {
+        Objects.requireNonNull(babyId, "babyId ne peut pas être null");
         Objects.requireNonNull(breastSide, "Cannot create a Feed without a breast side");
         Objects.requireNonNull(startTime, "startTime ne cannot be null");
-        return new Feed(null, breastSide, startTime, null);
+        return new Feed(null, babyId, breastSide, startTime, null);
+    }
+
+    public static Feed reconstitute(Long id, Long babyId, BreastSide breastSide, Instant startTime, Instant endTime) {
+        return new Feed(id, babyId, breastSide, startTime, endTime);
     }
 
     public Feed stopFeed(Instant endTime) {
@@ -30,7 +37,7 @@ public class Feed {
         if (endTime.isBefore(this.startTime)) {
             throw new IllegalArgumentException("End time cannot be before start time");
         }
-        return new Feed(this.id, this.breastSide, this.startTime, endTime);
+        return new Feed(this.id, this.babyId, this.breastSide, this.startTime, endTime);
     }
 
     public boolean isOngoing() {
@@ -45,6 +52,7 @@ public class Feed {
     }
 
     public Long getId() { return id; }
+    public Long getBabyId() { return babyId; }
     public BreastSide getSide() { return breastSide; }
     public Instant getStartTime() { return startTime; }
     public Instant getEndTime() { return endTime; }

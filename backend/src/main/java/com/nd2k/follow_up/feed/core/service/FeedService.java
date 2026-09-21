@@ -1,10 +1,8 @@
 package com.nd2k.follow_up.feed.core.service;
 
-import com.nd2k.follow_up.feed.core.domain.BreastSide;
-import com.nd2k.follow_up.feed.core.domain.Feed;
-import com.nd2k.follow_up.feed.core.domain.FeedNotFoundException;
-import com.nd2k.follow_up.feed.core.domain.FeedStats;
+import com.nd2k.follow_up.feed.core.domain.*;
 import com.nd2k.follow_up.feed.core.port.in.*;
+import com.nd2k.follow_up.feed.core.port.out.BabyAccessCheckPort;
 import com.nd2k.follow_up.feed.core.port.out.FeedRepositoryPort;
 import org.springframework.stereotype.Service;
 
@@ -23,47 +21,60 @@ public class FeedService implements
         GetStatsUseCase {
 
     private final FeedRepositoryPort feedRepositoryPort;
+    private final BabyAccessCheckPort babyAccessCheck;
     private final ZoneId zoneId;
 
-    public FeedService(FeedRepositoryPort feedRepositoryPort) {
+    public FeedService(FeedRepositoryPort feedRepositoryPort, BabyAccessCheckPort babyAccessCheck) {
         this.feedRepositoryPort = feedRepositoryPort;
+        this.babyAccessCheck = babyAccessCheck;
         this.zoneId = ZoneId.of("Europe/Brussels");
     }
 
+    private void checkAccess(Long userId, Long babyId) {
+        if (!babyAccessCheck.hasAccess(userId, babyId)) {
+            throw new UnauthorizedFeedAccessException(babyId);
+        }
+    }
+
     @Override
-    public Feed startFeed(BreastSide breastSide, Instant clientStartTime) {
+    public Feed startFeed(Long babyId, Long requestingUserId, BreastSide breastSide, Instant clientStartTime) {
+        checkAccess(requestingUserId, babyId);
         Instant effectiveStartTime = clientStartTime != null ? clientStartTime : Instant.now();
-        Feed newFeed = Feed.startFeed(breastSide, effectiveStartTime);
-        return feedRepositoryPort.save(newFeed);
+        return feedRepositoryPort.save(Feed.startFeed(babyId, breastSide, effectiveStartTime));
     }
 
     @Override
-    public Feed stopFeed(Long id) {
-        Feed feed = feedRepositoryPort.findById(id)
-                .orElseThrow(() -> new FeedNotFoundException(id));
-        Feed finishedFeed = feed.stopFeed(Instant.now());
-        return feedRepositoryPort.save(finishedFeed);
+    public Feed stopFeed(Long babyId, Long requestingUserId, Long feedId) {
+        checkAccess(requestingUserId, babyId);
+        Feed feed = feedRepositoryPort.findById(feedId)
+                .filter(f -> f.getBabyId().equals(babyId))
+                .orElseThrow(() -> new FeedNotFoundException(feedId));
+        return feedRepositoryPort.save(feed.stopFeed(Instant.now()));
     }
 
     @Override
-    public List<Feed> listAllFeed() {
-        return feedRepositoryPort.findAll().stream()
+    public List<Feed> listAllFeed(Long babyId, Long requestingUserId) {
+        checkAccess(requestingUserId, babyId);
+        return feedRepositoryPort.findAllByBabyId(babyId).stream()
                 .sorted(Comparator.comparing(Feed::getStartTime).reversed())
                 .toList();
     }
 
     @Override
-    public void deleteFeed(Long id) {
-        feedRepositoryPort.findById(id)
-                .orElseThrow(() -> new FeedNotFoundException(id));
-        feedRepositoryPort.deleteById(id);
+    public void deleteFeed(Long babyId, Long requestingUserId, Long feedId) {
+        checkAccess(requestingUserId, babyId);
+        Feed feed = feedRepositoryPort.findById(feedId)
+                .filter(f -> f.getBabyId().equals(babyId))
+                .orElseThrow(() -> new FeedNotFoundException(feedId));
+        feedRepositoryPort.deleteById(feed.getId());
     }
 
     @Override
-    public FeedStats getStats(LocalDate localDate) {
+    public FeedStats getStats(Long babyId, Long requestingUserId, LocalDate localDate) {
+        checkAccess(requestingUserId, babyId);
         Instant startOfDay = localDate.atStartOfDay(zoneId).toInstant();
         Instant endOfDay = localDate.plusDays(1).atStartOfDay(zoneId).toInstant();
-        List<Feed> feedsOfDay = feedRepositoryPort.findByStartTimeBetween(startOfDay, endOfDay).stream()
+        List<Feed> feedsOfDay = feedRepositoryPort.findByStartTimeBetween(babyId, startOfDay, endOfDay).stream()
                 .filter(feed -> !feed.isOngoing())
                 .toList();
         int count = feedsOfDay.size();

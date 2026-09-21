@@ -7,6 +7,7 @@ import java.util.List;
 
 interface FeedJpaRepository extends JpaRepository<FeedEntity, Long> {
 
-    List<FeedEntity> findByStartTimeBetween(Instant from,Instant to);
+    List<FeedEntity> findByBabyId(Long babyId);
+    List<FeedEntity> findByBabyIdAndStartTimeBetween(Long babyId, Instant from, Instant to);
 
 }

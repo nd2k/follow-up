@@ -7,5 +7,5 @@ import java.time.Instant;
 
 public interface StartFeedUseCase {
 
-    Feed startFeed(BreastSide breastSide, Instant clientStartTime);
+    Feed startFeed(Long babyId, Long requestingUserId, BreastSide breastSide, Instant clientStartTime);
 }

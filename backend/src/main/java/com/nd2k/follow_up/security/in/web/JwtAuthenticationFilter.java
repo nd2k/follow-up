@@ -34,7 +34,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain) throws ServletException, IOException {
         String header = request.getHeader("Authorization");
         if (header == null || !header.startsWith("Bearer ")) {
-            filterChain.doFilter(request, response); // pas de token : on laisse passer en anonyme, l'autorisation tranchera
+            filterChain.doFilter(request, response);
             return;
         }
         try {
@@ -46,8 +46,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             );
             SecurityContextHolder.getContext().setAuthentication(authentication);
         } catch (InvalidTokenException e) {
-            // Token présent mais invalide : on ne bloque pas ici, on laisse l'autorisation
-            // refuser plus loin (401 propre plutôt qu'une erreur bas niveau du filtre)
+            // Invalid token but no action required
         }
         filterChain.doFilter(request, response);
     }

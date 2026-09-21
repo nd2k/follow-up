@@ -6,6 +6,7 @@ import java.time.Instant;
 
 public record FeedResponseDto(
         Long id,
+        Long babyId,
         String side,
         Instant startTime,
         Instant endTime,
@@ -16,6 +17,7 @@ public record FeedResponseDto(
         Long duration = feed.isOngoing() ? null : feed.durationSeconds() / 60;
         return new FeedResponseDto(
                 feed.getId(),
+                feed.getBabyId(),
                 feed.getSide().name(),
                 feed.getStartTime(),
                 feed.getEndTime(),

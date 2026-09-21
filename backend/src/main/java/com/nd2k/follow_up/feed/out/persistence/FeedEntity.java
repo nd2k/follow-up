@@ -11,6 +11,8 @@ public class FeedEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+    @Column(name = "baby_id", nullable = false)
+    private Long babyId;
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private BreastSideEntity breastSide;
@@ -24,14 +26,16 @@ public class FeedEntity {
         // required by JPA
     }
 
-    public FeedEntity(Long id, BreastSideEntity breastSide, Instant startTime, Instant endTime) {
+    public FeedEntity(Long id, Long babyId, BreastSideEntity breastSide, Instant startTime, Instant endTime) {
         this.id = id;
+        this.babyId = babyId;
         this.breastSide = breastSide;
         this.startTime = startTime;
         this.endTime = endTime;
     }
 
     public Long getId() { return id; }
+    public Long getBabyId() { return babyId; }
     public BreastSideEntity getBreastSide() { return breastSide; }
     public Instant getStartTime() { return startTime; }
     public Instant getEndTime() { return endTime; }

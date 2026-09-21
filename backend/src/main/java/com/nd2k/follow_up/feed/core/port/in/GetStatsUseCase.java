@@ -6,5 +6,5 @@ import java.time.LocalDate;
 
 public interface GetStatsUseCase {
 
-    FeedStats getStats(LocalDate localDate);
+    FeedStats getStats(Long babyId, Long requestingUserId, LocalDate localDate);
 }

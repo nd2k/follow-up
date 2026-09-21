@@ -9,11 +9,11 @@ final class FeedMapper {
 
     static FeedEntity toEntity(Feed feed) {
         BreastSideEntity breastSideEntity = BreastSideEntity.valueOf(feed.getSide().name());
-        return new FeedEntity(feed.getId(), breastSideEntity, feed.getStartTime(), feed.getEndTime());
+        return new FeedEntity(feed.getId(), feed.getBabyId(), breastSideEntity, feed.getStartTime(), feed.getEndTime());
     }
 
     static Feed toDomain(FeedEntity feedEntity) {
         BreastSide breastSide = BreastSide.valueOf(feedEntity.getBreastSide().name());
-        return new Feed(feedEntity.getId(), breastSide, feedEntity.getStartTime(), feedEntity.getEndTime());
+        return new Feed(feedEntity.getId(), feedEntity.getBabyId(), breastSide, feedEntity.getStartTime(), feedEntity.getEndTime());
     }
 }

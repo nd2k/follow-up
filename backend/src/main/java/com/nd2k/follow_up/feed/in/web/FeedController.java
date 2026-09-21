@@ -8,14 +8,14 @@ import com.nd2k.follow_up.feed.in.web.dto.StatsResponseDto;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
 
-@CrossOrigin(origins = "*", maxAge = 3600)
 @RestController
-@RequestMapping("/api/v1")
+@RequestMapping("/api/v1/babies/{babyId}")
 public class FeedController {
 
     private final StartFeedUseCase startFeedUseCase;
@@ -36,35 +36,38 @@ public class FeedController {
         this.getStatsUseCase = getStatsUseCase;
     }
 
+    private Long userId(Authentication auth) {
+        return Long.parseLong(auth.getName());
+    }
+
     @PostMapping("/feeds/start")
-    private ResponseEntity<FeedResponseDto> addFeed(@Valid @RequestBody FeedRequestDto feedRequestDto) {
-        Feed feed = startFeedUseCase.startFeed(feedRequestDto.breastSide(), feedRequestDto.clientStartTime());
+    private ResponseEntity<FeedResponseDto> addFeed(@PathVariable Long babyId,
+                                                    @Valid @RequestBody FeedRequestDto feedRequestDto,
+                                                    Authentication authentication) {
+        Feed feed = startFeedUseCase.startFeed(babyId, userId(authentication), feedRequestDto.breastSide(), feedRequestDto.clientStartTime());
         return ResponseEntity.status(HttpStatus.CREATED).body(FeedResponseDto.from(feed));
     }
 
-    @PostMapping("/feeds/{id}/stop")
-    public ResponseEntity<FeedResponseDto> stop(@PathVariable Long id) {
-        Feed feed = stopFeedUseCase.stopFeed(id);
-        return ResponseEntity.ok(FeedResponseDto.from(feed));
+    @PostMapping("/feeds/{feedId}/stop")
+    public FeedResponseDto stop(@PathVariable Long babyId,
+                                                @PathVariable Long feedId,
+                                                Authentication authentication) {
+        return FeedResponseDto.from(stopFeedUseCase.stopFeed(babyId, userId(authentication), feedId));
     }
 
     @GetMapping("/feeds")
-    public ResponseEntity<List<FeedResponseDto>> listAll() {
-            List<FeedResponseDto> feeds = listFeedsUseCase.listAllFeed().stream()
-                .map(FeedResponseDto::from)
-                .toList();
-        return ResponseEntity.ok(feeds);
+    public List<FeedResponseDto> list(@PathVariable Long babyId, Authentication auth) {
+        return listFeedsUseCase.listAllFeed(babyId, userId(auth)).stream().map(FeedResponseDto::from).toList();
     }
 
-    @DeleteMapping("/feeds/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        deleteFeedUseCase.deleteFeed(id);
+    @DeleteMapping("/feeds/{feedId}")
+    public ResponseEntity<Void> delete(@PathVariable Long babyId, @PathVariable Long feedId, Authentication auth) {
+        deleteFeedUseCase.deleteFeed(babyId, userId(auth), feedId);
         return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/stats/today")
-    public ResponseEntity<StatsResponseDto> statsToday() {
-        StatsResponseDto stats = StatsResponseDto.from(getStatsUseCase.getStats(LocalDate.now()));
-        return ResponseEntity.ok(stats);
+    public StatsResponseDto statsToday(@PathVariable Long babyId, Authentication auth) {
+        return StatsResponseDto.from(getStatsUseCase.getStats(babyId, userId(auth), LocalDate.now()));
     }
 }

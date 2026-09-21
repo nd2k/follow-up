@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { ongoingFeed } from "#lib/stores/ongoingFeed.svelte.ts";
+  import { babyStore } from "#lib/stores/selectedBaby.svelte.ts";
   import { listFeeds, deleteFeed } from "#lib/services/feedService.ts";
   import { getStatsToday } from "#lib/services/statService.ts";
   import { checkHealth } from "#lib/services/healthService.ts";
@@ -16,6 +17,8 @@
   let finishedFeeds = $state<FeedResponse[]>([]);
   let backendStatus = $state<"waking" | "ready" | "error">("waking");
 
+   let babyId = $derived(babyStore.selectedId);
+
   async function wakeBackend() {
     try {
       console.log('wakeup')
@@ -29,14 +32,15 @@
   }
 
   async function refreshHistoryAndStats() {
-    const [feeds, statsResult] = await Promise.all([listFeeds(), getStatsToday()]);
+    if (!babyId) return;
+    const [feeds, statsResult] = await Promise.all([listFeeds(babyId), getStatsToday(babyId)]);
     finishedFeeds = feeds.filter((f) => !f.ongoing);
     stats = statsResult;
   }
 
   async function handleStart() {
-    if (!pendingSide) return;
-    await ongoingFeed.start(pendingSide);
+    if (!pendingSide || !babyId) return;
+    await ongoingFeed.start(babyId, pendingSide);
   }
 
   async function handleStop() {
@@ -46,14 +50,18 @@
   }
 
   async function handleDelete(id: number) {
-    await deleteFeed(id);
+    if (!babyId) return;
+    await deleteFeed(babyId, id);
     await refreshHistoryAndStats();
   }
 
   onMount(async () => {
     await wakeBackend();
-    await ongoingFeed.init();
-    await refreshHistoryAndStats();
+    await babyStore.refresh();
+    if (babyId) {
+      await ongoingFeed.init(babyId);
+      await refreshHistoryAndStats();
+    }
   });
 </script>
 
@@ -71,20 +79,28 @@
   {/if}
   <h1>Suivi des tétées</h1>
 
-  <SidePicker bind:selected={pendingSide} disabled={!!ongoingFeed.current} />
+  {#if !babyId}
+    <p class="empty">Aucun bébé enregistré.</p>
+    <a href="/babies" class="link-button">Ajouter un bébé</a>
+  {:else}
+    <SidePicker bind:selected={pendingSide} disabled={!!ongoingFeed.current} />
 
-  <FeedTimer
-    ongoing={!!ongoingFeed.current}
-    breastSide={ongoingFeed.current?.breastSide ?? pendingSide}
-    startTime={ongoingFeed.current?.startTime ?? null}
-    loading={ongoingFeed.isLoading}
-    onStart={handleStart}
-    onStop={handleStop}
-  />
+    <FeedTimer
+      ongoing={!!ongoingFeed.current}
+      breastSide={ongoingFeed.current?.breastSide ?? pendingSide}
+      startTime={ongoingFeed.current?.startTime ?? null}
+      loading={ongoingFeed.isLoading}
+      onStart={handleStart}
+      onStop={handleStop}
+    />
 
-  <StatsCards {stats} />
+    {#if ongoingFeed.hasSyncError}
+      <div class="sync-warning">Synchronisation en cours…</div>
+    {/if}
 
-  <FeedHistory feeds={finishedFeeds} onDelete={handleDelete} />
+    <StatsCards {stats} />
+    <FeedHistory feeds={finishedFeeds} onDelete={handleDelete} />
+  {/if}
 </main>
 
 <style>
@@ -99,5 +115,13 @@
     font-weight: 500;
     font-size: 22px;
     margin: 4px 0 28px;
+  }
+  .link-button {
+    padding: 14px 24px;
+    border-radius: 16px;
+    background: var(--accent);
+    color: #fff;
+    font-weight: 600;
+    text-decoration: none;
   }
 </style>
