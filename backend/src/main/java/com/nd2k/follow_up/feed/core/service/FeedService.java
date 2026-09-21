@@ -31,8 +31,9 @@ public class FeedService implements
     }
 
     @Override
-    public Feed startFeed(BreastSide breastSide) {
-        Feed newFeed = Feed.startFeed(breastSide, Instant.now());
+    public Feed startFeed(BreastSide breastSide, Instant clientStartTime) {
+        Instant effectiveStartTime = clientStartTime != null ? clientStartTime : Instant.now();
+        Feed newFeed = Feed.startFeed(breastSide, effectiveStartTime);
         return feedRepositoryPort.save(newFeed);
     }
 

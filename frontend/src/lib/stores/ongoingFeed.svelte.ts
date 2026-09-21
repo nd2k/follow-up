@@ -1,12 +1,14 @@
 import type { FeedResponse, BreastSide } from "#lib/types/feed.ts";
-import { startFeed, stopFeed, listFeeds } from "#lib/services/feedService.ts";
+import { startFeed, stopFeedWithRetry, listFeeds, startFeedWithRetry } from "#lib/services/feedService.ts";
 
 let feed = $state<FeedResponse | null>(null);
 let loading = $state(false);
+let syncError = $state(false);
 
 export const ongoingFeed = {
   get current() { return feed; },
   get isLoading() { return loading; },
+  get hasSyncError() { return syncError; },
 
   async init() {
     loading = true;
@@ -21,20 +23,21 @@ export const ongoingFeed = {
   },
 
   async start(breastSide: BreastSide) {
-    const optimisticFeed: FeedResponse = {
+    const clientStartTime = new Date().toISOString();
+    feed = {
       id: -1,
       breastSide,
-      startTime: new Date().toISOString(),
+      startTime: clientStartTime,
       endTime: null,
       ongoing: true,
       durationMinutes: null,
     };
-    feed = optimisticFeed;
     loading = true;
+    syncError = false;
     try {
-      feed = await startFeed(breastSide);
+      feed = await startFeed(breastSide, clientStartTime);
     }catch(error) {
-      feed = null;
+      syncError = true;
       throw error;
     } finally {
       loading = false;
@@ -45,8 +48,14 @@ export const ongoingFeed = {
     if (!feed) return;
     loading = true;
     try {
-      await stopFeed(feed.id);
+      if (feed.id === -1) {
+        feed = await startFeedWithRetry(feed.breastSide, feed.startTime);
+      }
+      await stopFeedWithRetry(feed.id);
       feed = null;
+      syncError = false;
+    } catch {
+      syncError = true;
     } finally {
       loading = false;
     }

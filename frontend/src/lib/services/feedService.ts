@@ -3,10 +3,28 @@ import type { FeedResponse, BreastSide } from "#lib/types/feed.ts";
 
 const API_URI: string = import.meta.env.VITE_API_URI ?? "/api/v1/feeds";
 
-export function startFeed(breastSide: BreastSide): Promise<FeedResponse> {
+async function withRetry<T>(fn: () => Promise<T>, delayMs = 5000): Promise<T> {
+  while (true) {
+    try {
+      return await fn();
+    } catch {
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+}
+
+export function startFeedWithRetry(breastSide: BreastSide, startTime: string): Promise<FeedResponse> {
+  return withRetry(() => startFeed(breastSide, startTime));
+}
+
+export function stopFeedWithRetry(id: number): Promise<FeedResponse> {
+  return withRetry(() => stopFeed(id));
+}
+
+export function startFeed(breastSide: BreastSide, startTime: string): Promise<FeedResponse> {
   return apiFetch<FeedResponse>(`${API_URI}/start`, {
     method: "POST",
-    body: JSON.stringify({ breastSide }),
+    body: JSON.stringify({ breastSide, startTime }),
   });
 }
 

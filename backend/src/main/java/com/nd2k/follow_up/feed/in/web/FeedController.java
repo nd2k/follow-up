@@ -38,7 +38,7 @@ public class FeedController {
 
     @PostMapping("/feeds/start")
     private ResponseEntity<FeedResponseDto> addFeed(@Valid @RequestBody FeedRequestDto feedRequestDto) {
-        Feed feed = startFeedUseCase.startFeed(feedRequestDto.breastSide());
+        Feed feed = startFeedUseCase.startFeed(feedRequestDto.breastSide(), feedRequestDto.clientStartTime());
         return ResponseEntity.status(HttpStatus.CREATED).body(FeedResponseDto.from(feed));
     }
 
