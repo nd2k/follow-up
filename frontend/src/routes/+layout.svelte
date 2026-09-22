@@ -6,6 +6,8 @@
 	import { onMount } from 'svelte';
 	import { goto } from "$app/navigation";
   	import { page } from "$app/state";
+	import AppHeader from '#lib/components/AppHeader.svelte';
+	import BabyTabs from '#lib/components/BabyTabs.svelte';
 
 	let { children } = $props();
 	let ready = $state(false);
@@ -31,6 +33,8 @@
 		goto("/feeds");
 		}
 	});
+
+	let showChrome = $derived(ready && auth.status === "authenticated" && page.url.pathname !== "/login");
 </script>
 
 <svelte:head>
@@ -38,6 +42,10 @@
 </svelte:head>
 
 {#if ready}
+{#if showChrome}
+    <AppHeader />
+    <BabyTabs />
+  {/if}
   {@render children()}
 {:else}
   <div class="boot-loader">Chargement…</div>

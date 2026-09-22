@@ -11,13 +11,14 @@
   import FeedTimer from "#lib/components/FeedTimer.svelte";
   import StatsCards from "#lib/components/StatsCards.svelte";
   import FeedHistory from "#lib/components/FeedHistory.svelte";
+  import Card from "#lib/components/Card.svelte";
 
   let pendingSide = $state<BreastSide | null>(null);
   let stats = $state<StatsResponse | null>(null);
   let finishedFeeds = $state<FeedResponse[]>([]);
   let backendStatus = $state<"waking" | "ready" | "error">("waking");
 
-   let babyId = $derived(babyStore.selectedId);
+  let babyId = $derived(babyStore.selectedId);
 
   async function wakeBackend() {
     try {
@@ -31,9 +32,9 @@
     }
   }
 
-  async function refreshHistoryAndStats() {
-    if (!babyId) return;
-    const [feeds, statsResult] = await Promise.all([listFeeds(babyId), getStatsToday(babyId)]);
+  async function refreshHistoryAndStats(id: number) {
+    if (!id) return;
+    const [feeds, statsResult] = await Promise.all([listFeeds(id), getStatsToday(id)]);
     finishedFeeds = feeds.filter((f) => !f.ongoing);
     stats = statsResult;
   }
@@ -46,22 +47,26 @@
   async function handleStop() {
     await ongoingFeed.stop();
     pendingSide = null;
-    await refreshHistoryAndStats();
+    if (babyId)
+    await refreshHistoryAndStats(babyId);
   }
 
   async function handleDelete(id: number) {
     if (!babyId) return;
     await deleteFeed(babyId, id);
-    await refreshHistoryAndStats();
+    await refreshHistoryAndStats(babyId);
   }
 
   onMount(async () => {
     await wakeBackend();
     await babyStore.refresh();
-    if (babyId) {
-      await ongoingFeed.init(babyId);
-      await refreshHistoryAndStats();
-    }
+  });
+
+   $effect(() => {
+    if (!babyId) return;
+    pendingSide = null;
+    ongoingFeed.init(babyId);
+    refreshHistoryAndStats(babyId);
   });
 </script>
 
@@ -80,26 +85,30 @@
   <h1>Suivi des tétées</h1>
 
   {#if !babyId}
-    <p class="empty">Aucun bébé enregistré.</p>
-    <a href="/babies" class="link-button">Ajouter un bébé</a>
+    <Card>
+      <p class="empty">Aucun bébé enregistré.</p>
+      <a href="/babies" class="link-button">Ajouter un bébé</a>
+    </Card>
   {:else}
-    <SidePicker bind:selected={pendingSide} disabled={!!ongoingFeed.current} />
+    <Card>
+      <SidePicker bind:selected={pendingSide} disabled={!!ongoingFeed.current} />
 
-    <FeedTimer
-      ongoing={!!ongoingFeed.current}
-      breastSide={ongoingFeed.current?.breastSide ?? pendingSide}
-      startTime={ongoingFeed.current?.startTime ?? null}
-      loading={ongoingFeed.isLoading}
-      onStart={handleStart}
-      onStop={handleStop}
-    />
+      <FeedTimer
+        ongoing={!!ongoingFeed.current}
+        breastSide={ongoingFeed.current?.breastSide ?? pendingSide}
+        startTime={ongoingFeed.current?.startTime ?? null}
+        loading={ongoingFeed.isLoading}
+        onStart={handleStart}
+        onStop={handleStop}
+      />
 
-    {#if ongoingFeed.hasSyncError}
-      <div class="sync-warning">Synchronisation en cours…</div>
-    {/if}
+      {#if ongoingFeed.hasSyncError}
+        <div class="sync-warning">Synchronisation en cours…</div>
+      {/if}
 
-    <StatsCards {stats} />
-    <FeedHistory feeds={finishedFeeds} onDelete={handleDelete} />
+      <StatsCards {stats} />
+      <FeedHistory feeds={finishedFeeds} onDelete={handleDelete} />
+    </Card>
   {/if}
 </main>
 
@@ -108,7 +117,10 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding: 24px 20px 48px;
+    gap: 16px;
+    padding: 4px 20px 48px;
+    max-width: 420px;
+    margin: 0 auto;
   }
   h1 {
     font-family: "Fraunces", serif;

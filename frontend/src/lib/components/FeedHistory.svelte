@@ -77,7 +77,7 @@
 </div>
 
 <style>
-  .history { width: 100%; max-width: 420px; }
+  .history { width: 100%; }
   .history h2 {
     font-family: "Fraunces", serif;
     font-weight: 500;

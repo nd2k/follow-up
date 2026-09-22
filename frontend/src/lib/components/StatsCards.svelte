@@ -24,8 +24,6 @@
 <style>
   .stats {
     width: 100%;
-    max-width: 420px;
-    margin-bottom: 32px;
   }
   .stats-row {
     display: flex;

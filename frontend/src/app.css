@@ -11,6 +11,8 @@
   --accent: #C98A3E;
   --danger: #B5566E;
   --shadow: rgba(43, 42, 51, 0.08);
+  --card-shadow: 0 1px 2px rgba(43, 42, 51, 0.04), 0 8px 24px rgba(43, 42, 51, 0.08);
+  --card-radius: 20px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -27,6 +29,7 @@
     --accent: #E0B464;
     --danger: #E093A6;
     --shadow: rgba(0, 0, 0, 0.35);
+    --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 32px rgba(0, 0, 0, 0.4);
   }
 }
 
