@@ -16,7 +16,7 @@
   let year = $state(today.getFullYear());
   let month = $state(today.getMonth());
   let weekStart = $state(startOfWeek(today));
-  let selectedDayKey = $state(dayKey(today)); // utilisé seulement en mode mois
+  let selectedDayKey = $state(dayKey(today));
 
   let babyId = $derived(babyStore.selectedId);
   let rangeFeeds = $state<FeedResponse[]>([]);
