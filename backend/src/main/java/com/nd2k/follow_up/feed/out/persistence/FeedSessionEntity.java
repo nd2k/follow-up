@@ -13,6 +13,7 @@ public class FeedSessionEntity {
     @Column(name = "baby_id", nullable = false)
     private Long babyId;
 
+    @SuppressWarnings("unused")
     protected FeedSessionEntity() {}
 
     public FeedSessionEntity(Long id, Long babyId) {
