@@ -1,6 +1,7 @@
 <script lang="ts">
   import { goto } from "$app/navigation";
   import { auth } from "#lib/stores/auth.svelte.ts";
+  import { theme } from "#lib/stores/theme.svelte.ts";
 
   let menuOpen = $state(false);
   let menuRef: HTMLDivElement;
@@ -36,10 +37,16 @@
       return () => window.removeEventListener("click", handleClickOutside);
     }
   });
+
+  function themeLabel(choice: string): string {
+    if (choice === "light") return "Thème : clair";
+    if (choice === "dark") return "Thème : sombre";
+    return "Thème : auto";
+  }
 </script>
 
 <header>
-  <h1>Tétées</h1>
+  <h1>Follow-up</h1>
 
   <div class="menu-wrap" bind:this={menuRef}>
     <button class="burger" onclick={toggleMenu} aria-label="Menu">
@@ -51,6 +58,7 @@
     {#if menuOpen}
       <div class="dropdown">
         <button onclick={goToBabies}>Gérer les bébés</button>
+        <button onclick={() => theme.toggle()}>{themeLabel(theme.choice)}</button>
         <button class="danger" onclick={handleLogout}>Se déconnecter</button>
       </div>
     {/if}

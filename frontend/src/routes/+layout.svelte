@@ -6,6 +6,7 @@
 	import { onMount } from 'svelte';
 	import { goto } from "$app/navigation";
   	import { page } from "$app/state";
+	import { theme } from "#lib/stores/theme.svelte.ts";
 	import AppHeader from '#lib/components/AppHeader.svelte';
 	import BabyTabs from '#lib/components/BabyTabs.svelte';
 
@@ -14,6 +15,7 @@
 	let keepAliveInterval: ReturnType<typeof setInterval> | undefined;
 
 	onMount(() => {
+		theme.init();
 		(async () => {
 		await auth.init();
 		ready = true;
