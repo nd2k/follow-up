@@ -20,7 +20,8 @@ public class FeedService implements
         StopFeedUseCase,
         ListFeedsUseCase,
         DeleteFeedUseCase,
-        GetStatsUseCase {
+        GetStatsUseCase,
+        GetFeedsInRangeUseCase{
 
     private static final long SESSION_GAP_MINUTES = 10;
 
@@ -60,12 +61,13 @@ public class FeedService implements
     }
 
     @Override
-    public Feed stopFeed(Long babyId, Long requestingUserId, Long feedId) {
+    public Feed stopFeed(Long babyId, Long requestingUserId, Long feedId, Instant clientEndTime) {
         checkAccess(requestingUserId, babyId);
         Feed feed = feedRepositoryPort.findById(feedId)
                 .filter(f -> f.getBabyId().equals(babyId))
                 .orElseThrow(() -> new FeedNotFoundException(feedId));
-        return feedRepositoryPort.save(feed.stopFeed(Instant.now()));
+        Instant effectiveEndTime = clientEndTime != null ? clientEndTime : Instant.now();
+        return feedRepositoryPort.save(feed.stopFeed(effectiveEndTime));
     }
 
     @Override
@@ -90,7 +92,7 @@ public class FeedService implements
         checkAccess(requestingUserId, babyId);
         Instant startOfDay = localDate.atStartOfDay(zoneId).toInstant();
         Instant endOfDay = localDate.plusDays(1).atStartOfDay(zoneId).toInstant();
-        List<Feed> feedsOfDay = feedRepositoryPort.findByStartTimeBetween(babyId, startOfDay, endOfDay).stream()
+        List<Feed> feedsOfDay = feedRepositoryPort.findByBabyIdAndStartTimeBetween(babyId, startOfDay, endOfDay).stream()
                 .filter(feed -> !feed.isOngoing())
                 .toList();
         int count = feedsOfDay.size();
@@ -100,5 +102,13 @@ public class FeedService implements
         long totalDurationInMinutes = totalSeconds / 60;
         long averageInMinutes = count > 0 ? totalDurationInMinutes / count : 0;
         return new FeedStats(count, totalDurationInMinutes, averageInMinutes);
+    }
+
+    @Override
+    public List<Feed> getForBabyInRange(Long babyId, Long requestingUserId, Instant from, Instant to) {
+        checkAccess(requestingUserId, babyId);
+        return feedRepositoryPort.findByBabyIdAndStartTimeBetween(babyId, from, to).stream()
+                .sorted(Comparator.comparing(Feed::getStartTime))
+                .toList();
     }
 }

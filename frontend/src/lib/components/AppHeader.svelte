@@ -58,6 +58,7 @@
     {#if menuOpen}
       <div class="dropdown">
         <button onclick={goToBabies}>Gérer les bébés</button>
+        <button onclick={() => { closeMenu(); goto("/calendar"); }}>Calendrier</button>
         <button onclick={() => theme.toggle()}>{themeLabel(theme.choice)}</button>
         <button class="danger" onclick={handleLogout}>Se déconnecter</button>
       </div>

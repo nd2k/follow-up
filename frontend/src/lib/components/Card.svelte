@@ -22,11 +22,11 @@
     border: 1px solid var(--surface-border);
     border-radius: var(--card-radius);
     box-shadow: var(--card-shadow);
-    padding: 20px;
+    padding: 2rem;
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin: 2rem 0;
+    margin: 0.5rem 0;
   }
   h2 {
     font-family: "Fraunces", serif;

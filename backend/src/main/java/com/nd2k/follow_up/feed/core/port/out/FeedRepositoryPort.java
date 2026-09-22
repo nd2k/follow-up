@@ -12,6 +12,6 @@ public interface FeedRepositoryPort {
     Optional<Feed> findById(Long id);
     Optional<Feed> findMostRecentByBabyId(Long babyId);
     List<Feed> findAllByBabyId(Long babyId);
-    List<Feed> findByStartTimeBetween(Long babyId, Instant from, Instant to);
+    List<Feed> findByBabyIdAndStartTimeBetween(Long babyId, Instant from, Instant to);
     void deleteById(Long id);
 }

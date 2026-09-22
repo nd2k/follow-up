@@ -36,7 +36,7 @@ class FeedPersistenceAdapter implements FeedRepositoryPort {
     }
 
     @Override
-    public List<Feed> findByStartTimeBetween(Long babyId, Instant from, Instant to) {
+    public List<Feed> findByBabyIdAndStartTimeBetween(Long babyId, Instant from, Instant to) {
         return feedJpaRepository.findByBabyIdAndStartTimeBetween(babyId, from, to).stream()
                 .map(FeedMapper::toDomain)
                 .toList();

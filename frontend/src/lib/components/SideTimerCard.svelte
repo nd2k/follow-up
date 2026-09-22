@@ -5,32 +5,38 @@
     breastSide,
     ongoing,
     startTime,
+    isPendingSave,
+    frozenEndTime,
     loading,
     syncError,
     onStart,
-    onStop,
+    onStopClock,
   }: {
     breastSide: BreastSide;
     ongoing: boolean;
     startTime: string | null;
+    isPendingSave: boolean;
+    frozenEndTime: string | null;
     loading: boolean;
     syncError: boolean;
     onStart: () => void;
-    onStop: () => void;
+    onStopClock: () => void;
   } = $props();
 
   let elapsedMs = $state(0);
 
   $effect(() => {
+    if (isPendingSave && startTime && frozenEndTime) {
+      elapsedMs = new Date(frozenEndTime).getTime() - new Date(startTime).getTime();
+      return;
+    }
     if (!ongoing || !startTime) {
       elapsedMs = 0;
       return;
     }
     const start = new Date(startTime).getTime();
     elapsedMs = Date.now() - start;
-    const interval = setInterval(() => {
-      elapsedMs = Date.now() - start;
-    }, 1000);
+    const interval = setInterval(() => { elapsedMs = Date.now() - start; }, 1000);
     return () => clearInterval(interval);
   });
 
@@ -43,17 +49,25 @@
     return `${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
   }
 
-  let label = breastSide === "LEFT" ? "Gauche" : "Droite";
+  let label = $derived(breastSide === "LEFT" ? "Gauche" : "Droite");
+  let showDigits = $derived(ongoing || isPendingSave);
 </script>
 
-<div class="side-timer" class:running={ongoing} class:left={breastSide === "LEFT"} class:right={breastSide === "RIGHT"}>
+<div class="side-timer" class:running={ongoing && !isPendingSave} class:pending={isPendingSave} class:left={breastSide === "LEFT"} class:right={breastSide === "RIGHT"}>
   <div class="ring">
-    <div class="digits">{ongoing ? fmtDuration(elapsedMs) : "00:00"}</div>
-    <div class="label">{label}</div>
+    <div class="digits">{showDigits ? fmtDuration(elapsedMs) : "00:00"}</div>
+    <div class="label">{label}{isPendingSave ? " · à enregistrer" : ""}</div>
   </div>
-  <button class="btn" class:stop={ongoing} disabled={loading} onclick={ongoing ? onStop : onStart}>
+
+  <button
+    class="btn"
+    class:stop={ongoing}
+    disabled={isPendingSave || (!ongoing && loading)}
+    onclick={ongoing ? onStopClock : onStart}
+  >
     {ongoing ? "Arrêter" : "Démarrer"}
   </button>
+
   {#if syncError}
     <div class="sync-warning">Synchronisation…</div>
   {/if}
@@ -81,13 +95,14 @@
   }
   .side-timer.running.left .ring { border-color: var(--left); }
   .side-timer.running.right .ring { border-color: var(--right); }
+  .side-timer.pending .ring { border-color: var(--accent); }
   .digits {
     font-family: "Fraunces", serif;
     font-weight: 500;
     font-size: 22px;
     font-variant-numeric: tabular-nums;
   }
-  .label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .label { font-size: 11px; color: var(--muted); margin-top: 4px; text-align: center; }
   .btn {
     width: 100%;
     padding: 12px 0;
@@ -102,6 +117,6 @@
   .side-timer.left .btn { background: var(--left); }
   .side-timer.right .btn { background: var(--right); }
   .btn.stop { background: var(--danger); }
-  .btn:disabled { opacity: 0.6; cursor: not-allowed; }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
   .sync-warning { font-size: 11px; color: var(--muted); }
 </style>
