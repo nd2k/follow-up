@@ -46,4 +46,9 @@ class FeedPersistenceAdapter implements FeedRepositoryPort {
     public void deleteById(Long id) {
         feedJpaRepository.deleteById(id);
     }
+
+    @Override
+    public Optional<Feed> findMostRecentByBabyId(Long babyId) {
+        return feedJpaRepository.findFirstByBabyIdOrderByStartTimeDesc(babyId).map(FeedMapper::toDomain);
+    }
 }

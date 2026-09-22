@@ -7,7 +7,8 @@ import java.time.Instant;
 public record FeedResponseDto(
         Long id,
         Long babyId,
-        String side,
+        Long sessionId,
+        String breastSide,
         Instant startTime,
         Instant endTime,
         boolean ongoing,
@@ -18,7 +19,8 @@ public record FeedResponseDto(
         return new FeedResponseDto(
                 feed.getId(),
                 feed.getBabyId(),
-                feed.getSide().name(),
+                feed.getSessionId(),
+                feed.getBreastSide().name(),
                 feed.getStartTime(),
                 feed.getEndTime(),
                 feed.isOngoing(),

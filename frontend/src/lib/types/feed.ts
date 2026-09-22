@@ -3,8 +3,9 @@ export type BreastSide = "LEFT" | "RIGHT";
 export interface FeedResponse {
   id: number;
   babyId: number;
+  sessionId: number;
   breastSide: BreastSide;
-  startTime: string; // ISO instant
+  startTime: string;
   endTime: string | null;
   ongoing: boolean;
   durationMinutes: number | null;

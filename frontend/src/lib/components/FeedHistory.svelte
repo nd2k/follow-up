@@ -19,7 +19,6 @@
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayKey = dayKey(yesterday.toISOString());
-
     if (key === todayKey) return "Aujourd'hui";
     if (key === yesterdayKey) return "Hier";
     const [y, m, d] = key.split("-");
@@ -30,30 +29,55 @@
     return new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
   }
 
+  interface Session {
+    sessionId: number;
+    startTime: string;
+    feeds: FeedResponse[];
+  }
   interface DayGroup {
     key: string;
-    feeds: FeedResponse[];
+    sessions: Session[];
     totalMinutes: number;
+    count: number;
   }
 
   let groups = $derived.by((): DayGroup[] => {
-    const map = new Map<string, FeedResponse[]>();
+    const byDay = new Map<string, FeedResponse[]>();
     for (const feed of feeds) {
       const key = dayKey(feed.startTime);
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(feed);
+      if (!byDay.has(key)) byDay.set(key, []);
+      byDay.get(key)!.push(feed);
     }
-    return Array.from(map.entries()).map(([key, dayFeeds]) => ({
-      key,
-      feeds: dayFeeds,
-      totalMinutes: dayFeeds.reduce((sum, f) => sum + (f.durationMinutes ?? 0), 0),
-    }));
+
+    return Array.from(byDay.entries()).map(([key, dayFeeds]) => {
+      const bySession = new Map<number, FeedResponse[]>();
+      for (const feed of dayFeeds) {
+        if (!bySession.has(feed.sessionId)) bySession.set(feed.sessionId, []);
+        bySession.get(feed.sessionId)!.push(feed);
+      }
+
+      const sessions: Session[] = Array.from(bySession.entries())
+        .map(([sessionId, sessionFeeds]) => ({
+          sessionId,
+          startTime: sessionFeeds.reduce(
+            (earliest, f) => (f.startTime < earliest ? f.startTime : earliest),
+            sessionFeeds[0].startTime
+          ),
+          feeds: sessionFeeds.sort((a, b) => a.startTime.localeCompare(b.startTime)),
+        }))
+        .sort((a, b) => b.startTime.localeCompare(a.startTime));
+
+      return {
+        key,
+        sessions,
+        totalMinutes: dayFeeds.reduce((sum, f) => sum + (f.durationMinutes ?? 0), 0),
+        count: dayFeeds.length,
+      };
+    });
   });
 </script>
 
 <div class="history">
-  <h2>Historique</h2>
-
   {#if groups.length === 0}
     <div class="empty">Aucune tétée enregistrée pour l'instant.</div>
   {:else}
@@ -61,14 +85,20 @@
       <div class="day-group">
         <div class="day-heading">
           <span>{dayHeading(group.key)}</span>
-          <span>{group.feeds.length} tétées · {group.totalMinutes} min</span>
+          <span>{group.count} tétées · {group.totalMinutes} min</span>
         </div>
-        {#each group.feeds as feed (feed.id)}
+        {#each group.sessions as session (session.sessionId)}
           <div class="feed-entry">
-            <span class="side-dot" class:left={feed.breastSide === "LEFT"} class:right={feed.breastSide === "RIGHT"}></span>
-            <span class="feed-time">{fmtTime(feed.startTime)}</span>
-            <span class="feed-duration">{feed.durationMinutes} min</span>
-            <button class="feed-delete" aria-label="Supprimer" onclick={() => onDelete(feed.id)}>✕</button>
+            <span class="feed-time">{fmtTime(session.startTime)}</span>
+            <div class="session-sides">
+              {#each session.feeds as feed (feed.id)}
+                <span class="side-chip" class:left={feed.breastSide === "LEFT"} class:right={feed.breastSide === "RIGHT"}>
+                  <span class="side-dot"></span>
+                  {feed.breastSide === "LEFT" ? "G" : "D"} · {feed.durationMinutes} min
+                  <button class="feed-delete" aria-label="Supprimer" onclick={() => onDelete(feed.id)}>✕</button>
+                </span>
+              {/each}
+            </div>
           </div>
         {/each}
       </div>
@@ -78,12 +108,6 @@
 
 <style>
   .history { width: 100%; }
-  .history h2 {
-    font-family: "Fraunces", serif;
-    font-weight: 500;
-    font-size: 16px;
-    margin: 0 0 12px;
-  }
   .day-group { margin-bottom: 20px; }
   .day-heading {
     font-size: 12.5px;
@@ -96,25 +120,41 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    background: var(--surface);
+    background: var(--bg);
     border: 1px solid var(--surface-border);
     border-radius: 12px;
     padding: 10px 14px;
     margin-bottom: 6px;
     font-size: 14px;
+    flex-wrap: wrap;
   }
-  .side-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-  .side-dot.left { background: var(--left); }
-  .side-dot.right { background: var(--right); }
-  .feed-time { font-weight: 500; }
-  .feed-duration { color: var(--muted); margin-left: auto; }
+  .feed-time { font-weight: 500; min-width: 44px; }
+  .session-sides {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-left: auto;
+  }
+  .side-chip {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 12.5px;
+    font-weight: 500;
+  }
+  .side-chip.left { background: var(--left-soft); color: var(--left); }
+  .side-chip.right { background: var(--right-soft); color: var(--right); }
+  .side-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
   .feed-delete {
     background: none;
     border: none;
-    color: var(--muted);
-    font-size: 16px;
+    color: currentColor;
+    opacity: 0.6;
+    font-size: 13px;
     cursor: pointer;
-    padding: 0 2px;
+    padding: 0 0 0 2px;
     line-height: 1;
   }
   .empty {

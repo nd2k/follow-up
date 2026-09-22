@@ -4,8 +4,10 @@ import com.nd2k.follow_up.feed.core.domain.*;
 import com.nd2k.follow_up.feed.core.port.in.*;
 import com.nd2k.follow_up.feed.core.port.out.BabyAccessCheckPort;
 import com.nd2k.follow_up.feed.core.port.out.FeedRepositoryPort;
+import com.nd2k.follow_up.feed.core.port.out.FeedSessionRepositoryPort;
 import org.springframework.stereotype.Service;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -20,14 +22,17 @@ public class FeedService implements
         DeleteFeedUseCase,
         GetStatsUseCase {
 
-    private final FeedRepositoryPort feedRepositoryPort;
-    private final BabyAccessCheckPort babyAccessCheck;
-    private final ZoneId zoneId;
+    private static final long SESSION_GAP_MINUTES = 10;
 
-    public FeedService(FeedRepositoryPort feedRepositoryPort, BabyAccessCheckPort babyAccessCheck) {
+    private final FeedRepositoryPort feedRepositoryPort;
+    private final FeedSessionRepositoryPort sessionRepository;
+    private final BabyAccessCheckPort babyAccessCheck;
+    private final ZoneId zoneId = ZoneId.of("Europe/Brussels");
+
+    public FeedService(FeedRepositoryPort feedRepositoryPort, FeedSessionRepositoryPort sessionRepository, BabyAccessCheckPort babyAccessCheck) {
         this.feedRepositoryPort = feedRepositoryPort;
+        this.sessionRepository = sessionRepository;
         this.babyAccessCheck = babyAccessCheck;
-        this.zoneId = ZoneId.of("Europe/Brussels");
     }
 
     private void checkAccess(Long userId, Long babyId) {
@@ -36,11 +41,22 @@ public class FeedService implements
         }
     }
 
+    private Long resolveSessionId(Long babyId, Instant startTime) {
+        return feedRepositoryPort.findMostRecentByBabyId(babyId)
+                .filter(last -> {
+                    Instant lastActivity = last.isOngoing() ? last.getStartTime() : last.getEndTime();
+                    return Duration.between(lastActivity, startTime).toMinutes() <= SESSION_GAP_MINUTES;
+                })
+                .map(Feed::getSessionId)
+                .orElseGet(() -> sessionRepository.save(FeedSession.create(babyId)).getId());
+    }
+
     @Override
     public Feed startFeed(Long babyId, Long requestingUserId, BreastSide breastSide, Instant clientStartTime) {
         checkAccess(requestingUserId, babyId);
         Instant effectiveStartTime = clientStartTime != null ? clientStartTime : Instant.now();
-        return feedRepositoryPort.save(Feed.startFeed(babyId, breastSide, effectiveStartTime));
+        Long sessionId = resolveSessionId(babyId, effectiveStartTime);
+        return feedRepositoryPort.save(Feed.startFeed(babyId, sessionId, breastSide, effectiveStartTime));
     }
 
     @Override
