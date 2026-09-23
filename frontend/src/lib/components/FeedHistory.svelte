@@ -43,7 +43,7 @@
     startTime: string;
     endTime: string; // fin la plus tardive parmi les côtés de la session
     feeds: FeedResponse[];
-    delaySincePrevious: number | null; // ms depuis la fin de la session précédente, null pour la toute première
+    delayToNext: number | null; // ms depuis la fin de la session précédente, null pour la toute première
   }
 
   // Construit la séquence globale des sessions, triée du plus ancien au plus récent,
@@ -74,8 +74,8 @@
 
     return sessions.map((session, i) => ({
       ...session,
-      delaySincePrevious:
-        i === 0 ? null : new Date(session.startTime).getTime() - new Date(sessions[i - 1].endTime).getTime(),
+      delayToNext:
+        i === sessions.length - 1 ? null : new Date(sessions[i + 1].startTime).getTime() - new Date(session.endTime).getTime(),
     }));
   });
 
@@ -121,9 +121,13 @@
           <span>{group.count} tétées · {group.totalMinutes} min</span>
         </div>
         {#each group.rows as session (session.sessionId)}
-          {#if session.delaySincePrevious !== null}
+          {#if session.delayToNext !== null}
             <div class="delay-divider">
-              <span>{fmtDelay(session.delaySincePrevious)} depuis la tétée précédente</span>
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.3" />
+                <path d="M8 4.5V8l2.5 1.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
+              </svg>
+              <span>{fmtDelay(session.delayToNext)}</span>
             </div>
           {/if}
           <div class="feed-entry">
@@ -222,5 +226,17 @@
     color: var(--muted);
     font-size: 14px;
     padding: 20px 0;
+  }
+  .delay-divider {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    font-size: 11px;
+    color: var(--muted);
+    padding: 4px 0;
+  }
+  .delay-divider svg {
+    flex-shrink: 0;
   }
 </style>
