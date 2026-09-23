@@ -9,6 +9,7 @@
   import SideTimerCard from "#lib/components/SideTimerCard.svelte";
   import StatsCards from "#lib/components/StatsCards.svelte";
   import FeedHistory from "#lib/components/FeedHistory.svelte";
+  import TimeSinceLastFeed from "#lib/components/TimeSinceLastFeed.svelte";
 
   let stats = $state<StatsResponse | null>(null);
   let finishedFeeds = $state<FeedResponse[]>([]);
@@ -16,6 +17,14 @@
 
   let babyId = $derived(babyStore.selectedId);
   let hasPendingSave = $derived(leftTimer.isPendingSave || rightTimer.isPendingSave);
+
+  let lastFeedEndTime = $derived.by(() => {
+    if (finishedFeeds.length === 0) return null;
+    return finishedFeeds.reduce(
+      (latest, f) => (f.endTime && f.endTime > latest ? f.endTime : latest),
+      finishedFeeds[0].endTime ?? ""
+    ) || null;
+  });
 
   async function refreshHistoryAndStats(id: number) {
     const [feeds, statsResult] = await Promise.all([listFeeds(id), getStatsToday(id)]);
@@ -57,6 +66,9 @@
       <a href="/babies" class="link-button">Ajouter un bébé</a>
     </Card>
   {:else}
+    <Card>
+      <TimeSinceLastFeed {lastFeedEndTime} />
+    </Card>
     <Card>
       <div class="timers-row">
         <SideTimerCard
