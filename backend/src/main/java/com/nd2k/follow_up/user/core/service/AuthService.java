@@ -3,6 +3,7 @@ package com.nd2k.follow_up.user.core.service;
 import com.nd2k.follow_up.user.core.domain.User;
 import com.nd2k.follow_up.user.core.domain.AuthTokens;
 import com.nd2k.follow_up.user.core.domain.exception.InvalidCredentialsException;
+import com.nd2k.follow_up.user.core.domain.exception.InvalidTokenException;
 import com.nd2k.follow_up.user.core.port.in.LoginUseCase;
 import com.nd2k.follow_up.user.core.port.in.RefreshTokenUseCase;
 import com.nd2k.follow_up.user.core.port.out.PasswordHasherPort;
@@ -40,6 +41,12 @@ public class AuthService implements LoginUseCase, RefreshTokenUseCase {
 
     @Override
     public AuthTokens refresh(String refreshToken) {
-        return null;
+        Long userId = tokenPort.extractUserId(refreshToken);
+        User user = userRepositoryPort.findById(userId)
+                .orElseThrow(() -> new InvalidTokenException("Utilisateur introuvable"));
+        return new AuthTokens(
+                tokenPort.generateAccessToken(userId, user.getEmail()),
+                tokenPort.generateRefreshToken(userId)
+        );
     }
 }
