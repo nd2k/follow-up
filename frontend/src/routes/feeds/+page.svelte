@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { leftTimer, rightTimer, initOngoingFeeds } from "#lib/stores/ongoingFeed.svelte.ts";
+  import { leftTimer, rightTimer, initOngoingFeeds, startSide } from "#lib/stores/ongoingFeed.svelte.ts";
   import { babyStore } from "#lib/stores/selectedBaby.svelte.ts";
   import { listFeeds, deleteFeed } from "#lib/services/feedService.ts";
   import { getStatsToday } from "#lib/services/statService.ts";
@@ -28,10 +28,12 @@
 
   let lastFeedEndTime = $derived.by(() => {
     if (finishedFeeds.length === 0) return null;
-    return finishedFeeds.reduce(
+    const now = new Date().toISOString();
+    const latest = finishedFeeds.reduce(
       (latest, f) => (f.endTime && f.endTime > latest ? f.endTime : latest),
-      finishedFeeds[0].endTime ?? ""
-    ) || null;
+      finishedFeeds[0].endTime ?? "");
+    return latest && latest <= now ? latest : null;
+
   });
 
   async function refreshHistoryAndStats(id: number) {
@@ -86,7 +88,7 @@
           frozenEndTime={leftTimer.frozenEndTime}
           loading={leftTimer.isLoading}
           syncError={leftTimer.hasSyncError}
-          onStart={() => leftTimer.start(babyId)}
+          onStart={() => startSide(babyId, "LEFT")}
           onStopClock={() => leftTimer.stopClock()}
         />
         <SideTimerCard
@@ -97,7 +99,7 @@
           frozenEndTime={rightTimer.frozenEndTime}
           loading={rightTimer.isLoading}
           syncError={rightTimer.hasSyncError}
-          onStart={() => rightTimer.start(babyId)}
+          onStart={() => startSide(babyId, "RIGHT")}
           onStopClock={() => rightTimer.stopClock()}
         />
       </div>

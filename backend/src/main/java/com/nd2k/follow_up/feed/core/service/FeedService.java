@@ -127,6 +127,9 @@ public class FeedService implements
             if (entry.startTime().isAfter(now)) {
                 throw new IllegalArgumentException("L'heure de début ne peut pas être dans le futur");
             }
+            if (entry.endTime().isAfter(now)) {
+                throw new IllegalArgumentException("L'heure de fin ne peut pas être dans le futur");
+            }
         }
         Long sessionId = sessionRepository.save(FeedSession.create(babyId)).getId();
         return entries.stream()

@@ -4,15 +4,14 @@
   let elapsedMs = $state(0);
 
   $effect(() => {
-    if (!lastFeedEndTime) {
+    if (!lastFeedEndTime) {        
       elapsedMs = 0;
       return;
     }
     const end = new Date(lastFeedEndTime).getTime();
-    elapsedMs = Date.now() - end;
-
+    elapsedMs = Math.max(0, Date.now() - end);
     const interval = setInterval(() => {
-      elapsedMs = Date.now() - end;
+        elapsedMs = Math.max(0, Date.now() - end);
     }, 1000);
     return () => clearInterval(interval);
   });
