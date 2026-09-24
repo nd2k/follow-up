@@ -3,6 +3,12 @@ import type { FeedResponse, BreastSide } from "#lib/types/feed.ts";
 
 const API_URI: string = import.meta.env.VITE_API_URI ?? "/api/v1/babies";
 
+export interface ManualSideEntry {
+  breastSide: BreastSide;
+  startTime: string;
+  endTime: string;
+}
+
 async function withRetry<T>(fn: () => Promise<T>, delayMs = 5000): Promise<T> {
   while (true) {
     try {
@@ -46,4 +52,11 @@ export function deleteFeed(babyId: number, id: number): Promise<void> {
 export function listFeedsInRange(babyId: number, from: string, to: string): Promise<FeedResponse[]> {
   const params = new URLSearchParams({ from, to });
   return apiFetch<FeedResponse[]>(`${API_URI}/${babyId}/feeds/range?${params}`);
+}
+
+export function recordManualFeed(babyId: number, entries: ManualSideEntry[]): Promise<FeedResponse[]> {
+  return apiFetch<FeedResponse[]>(`${API_URI}/${babyId}/feeds/manual`, {
+    method: "POST",
+    body: JSON.stringify({ entries }),
+  });
 }

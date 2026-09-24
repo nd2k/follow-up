@@ -3,7 +3,7 @@ import { startFeedWithRetry, stopFeedWithRetry } from "#lib/services/feedService
 
 export function createSideTimer(breastSide: BreastSide) {
   let feed = $state<FeedResponse | null>(null);
-   let frozenEndTime = $state<string | null>(null);
+  let frozenEndTime = $state<string | null>(null);
   let loading = $state(false);
   let syncError = $state(false);
 

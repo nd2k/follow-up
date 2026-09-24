@@ -21,7 +21,8 @@ public class FeedService implements
         ListFeedsUseCase,
         DeleteFeedUseCase,
         GetStatsUseCase,
-        GetFeedsInRangeUseCase{
+        GetFeedsInRangeUseCase,
+        RecordManualFeedUseCase {
 
     private static final long SESSION_GAP_MINUTES = 10;
 
@@ -109,6 +110,29 @@ public class FeedService implements
         checkAccess(requestingUserId, babyId);
         return feedRepositoryPort.findByBabyIdAndStartTimeBetween(babyId, from, to).stream()
                 .sorted(Comparator.comparing(Feed::getStartTime))
+                .toList();
+    }
+
+    @Override
+    public List<Feed> record(Long babyId, Long requestingUserId, List<SideEntry> entries) {
+        checkAccess(requestingUserId, babyId);
+        if (entries.isEmpty()) {
+            throw new IllegalArgumentException("Au moins un côté doit être renseigné");
+        }
+        Instant now = Instant.now();
+        for (RecordManualFeedUseCase.SideEntry entry : entries) {
+            if (!entry.endTime().isAfter(entry.startTime())) {
+                throw new IllegalArgumentException("L'heure de fin doit être après l'heure de début");
+            }
+            if (entry.startTime().isAfter(now)) {
+                throw new IllegalArgumentException("L'heure de début ne peut pas être dans le futur");
+            }
+        }
+        Long sessionId = sessionRepository.save(FeedSession.create(babyId)).getId();
+        return entries.stream()
+                .map(entry -> feedRepositoryPort.save(
+                        Feed.startFeed(babyId, sessionId, entry.breastSide(), entry.startTime()).stopFeed(entry.endTime())
+                ))
                 .toList();
     }
 }

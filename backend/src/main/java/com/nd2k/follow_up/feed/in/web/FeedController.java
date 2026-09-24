@@ -2,10 +2,7 @@ package com.nd2k.follow_up.feed.in.web;
 
 import com.nd2k.follow_up.feed.core.domain.Feed;
 import com.nd2k.follow_up.feed.core.port.in.*;
-import com.nd2k.follow_up.feed.in.web.dto.FeedRequestDto;
-import com.nd2k.follow_up.feed.in.web.dto.FeedResponseDto;
-import com.nd2k.follow_up.feed.in.web.dto.StatsResponseDto;
-import com.nd2k.follow_up.feed.in.web.dto.StopFeedRequest;
+import com.nd2k.follow_up.feed.in.web.dto.*;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,19 +23,22 @@ public class FeedController {
     private final DeleteFeedUseCase deleteFeedUseCase;
     private final GetStatsUseCase getStatsUseCase;
     private final GetFeedsInRangeUseCase getFeedsInRangeUseCase;
+    private final RecordManualFeedUseCase recordManualFeedUseCase;
 
     public FeedController(StartFeedUseCase startFeedUseCase,
                           StopFeedUseCase stopFeedUseCase,
                           ListFeedsUseCase listFeedsUseCase,
                           DeleteFeedUseCase deleteFeedUseCase,
                           GetStatsUseCase getStatsUseCase,
-                          GetFeedsInRangeUseCase getFeedsInRangeUseCase) {
+                          GetFeedsInRangeUseCase getFeedsInRangeUseCase,
+                          RecordManualFeedUseCase recordManualFeedUseCase) {
         this.startFeedUseCase = startFeedUseCase;
         this.stopFeedUseCase = stopFeedUseCase;
         this.listFeedsUseCase = listFeedsUseCase;
         this.deleteFeedUseCase = deleteFeedUseCase;
         this.getStatsUseCase = getStatsUseCase;
         this.getFeedsInRangeUseCase = getFeedsInRangeUseCase;
+        this.recordManualFeedUseCase = recordManualFeedUseCase;
     }
 
     private Long userId(Authentication auth) {
@@ -87,5 +87,19 @@ public class FeedController {
         return getFeedsInRangeUseCase.getForBabyInRange(babyId, userId(auth), from, to).stream()
                 .map(FeedResponseDto::from)
                 .toList();
+    }
+
+    @PostMapping("/feeds/manual")
+    public ResponseEntity<List<FeedResponseDto>> recordManual(
+            @PathVariable Long babyId,
+            @Valid @RequestBody RecordManualFeedRequest request,
+            Authentication auth) {
+        List<RecordManualFeedUseCase.SideEntry> entries = request.entries().stream()
+                .map(e -> new RecordManualFeedUseCase.SideEntry(e.breastSide(), e.startTime(), e.endTime()))
+                .toList();
+        List<FeedResponseDto> created = recordManualFeedUseCase.record(babyId, userId(auth), entries).stream()
+                .map(FeedResponseDto::from)
+                .toList();
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 }

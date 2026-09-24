@@ -10,6 +10,7 @@
   import StatsCards from "#lib/components/StatsCards.svelte";
   import FeedHistory from "#lib/components/FeedHistory.svelte";
   import TimeSinceLastFeed from "#lib/components/TimeSinceLastFeed.svelte";
+  import ManualFeedModal from "#lib/components/ManualFeedModal.svelte";
 
   let stats = $state<StatsResponse | null>(null);
   let finishedFeeds = $state<FeedResponse[]>([]);
@@ -17,6 +18,13 @@
 
   let babyId = $derived(babyStore.selectedId);
   let hasPendingSave = $derived(leftTimer.isPendingSave || rightTimer.isPendingSave);
+  let showManualModal = $state(false);
+
+  $effect(() => {
+    if (!babyId) return;
+    initOngoingFeeds(babyId);
+    refreshHistoryAndStats(babyId);
+  });
 
   let lastFeedEndTime = $derived.by(() => {
     if (finishedFeeds.length === 0) return null;
@@ -52,11 +60,10 @@
     }
   }
 
-  $effect(() => {
-    if (!babyId) return;
-    initOngoingFeeds(babyId);
-    refreshHistoryAndStats(babyId);
-  });
+  function handleManualSaved() {
+    showManualModal = false;
+    if (babyId) refreshHistoryAndStats(babyId);
+  }
 </script>
 
 <main>
@@ -100,7 +107,14 @@
           {saving ? "Enregistrement…" : "Enregistrer la tétée"}
         </button>
       {/if}
+      <button class="manual-entry" onclick={() => (showManualModal = true)}>
+        + Ajouter manuellement
+      </button>
     </Card>
+
+    {#if showManualModal && babyId}
+      <ManualFeedModal {babyId} onClose={() => (showManualModal = false)} onSaved={handleManualSaved} />
+    {/if}
 
     <Card title="Aujourd'hui">
       <StatsCards {stats} />
@@ -140,4 +154,16 @@
     cursor: pointer;
   }
   .save-all:disabled { opacity: 0.6; cursor: not-allowed; }
+  .manual-entry {
+    width: 100%;
+    margin-top: 10px;
+    padding: 11px 0;
+    border-radius: 14px;
+    border: 1.5px dashed var(--surface-border);
+    background: none;
+    color: var(--muted);
+    font-weight: 500;
+    font-size: 13.5px;
+    cursor: pointer;
+  }
 </style>
