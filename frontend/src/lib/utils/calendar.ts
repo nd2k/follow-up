@@ -1,3 +1,5 @@
+import type { FeedResponse } from "#lib/types/feed.ts";
+
 export interface CalendarDay {
   date: Date;
   isCurrentMonth: boolean;
@@ -69,3 +71,7 @@ export const MONTH_LABELS = [
   "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
   "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre",
 ];
+
+export function flattenEntries(feeds: FeedResponse[]) {
+  return feeds.flatMap((f) => f.entries.map((e) => ({ ...e, babyId: f.babyId })));
+}
