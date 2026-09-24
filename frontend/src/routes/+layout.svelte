@@ -1,40 +1,42 @@
 <script lang="ts">
     import '../app.css';
 	import favicon from '#lib/assets/favicon.svg';
-    import { auth } from '#lib/stores/auth.svelte.ts';
+    import { authentication } from '#lib/stores/auth.svelte.ts';
 	import { page } from '$app/state';
 
     import AppHeader from '#lib/components/AppHeader.svelte';
-    import BabyTabs from '#lib/components/BabyTabs.svelte';
+    // import BabyTabs from '#lib/components/BabyTabs.svelte';
 	import { onMount } from 'svelte';
-	import { theme } from '#lib/stores/theme.svelte.ts';
-	import { checkHealth } from '#lib/services/healthService.ts';
+	// import { theme } from '#lib/stores/theme.svelte.ts';
+	// import { checkHealth } from '#lib/services/healthService.ts';
 	import { goto } from '$app/navigation';
+	import { checkHealth } from '#lib/services/healthService.ts';
 
     let { children } = $props();
     let serverIsUp = $state(false);
-    let appIsReady = $derived(serverIsUp && auth.status === "authenticated" && page.url.pathname !== "/login");
+    let appIsReady = $derived(serverIsUp && authentication.status === "AUTHENTICATED" && page.url.pathname !== "/login");
     let keepAliveInterval: ReturnType<typeof setInterval> | undefined;
 
     onMount(() => {
-        theme.init();
+        //theme.init();
         (async() => {
-            await auth.init();
-            appIsReady = true;
+            await authentication.init();
+            serverIsUp = true;
         })();
-
+        console.log(serverIsUp);
+        
         keepAliveInterval = setInterval(() => {
-		checkHealth().catch(() => {});
-		}, 10 * 60 * 1000);
-		return () => clearInterval(keepAliveInterval);
+            checkHealth().catch(() => {});
+        }, 10 * 60 * 1000);
+        return () => clearInterval(keepAliveInterval);
     })
 
     $effect(() => {
-        if (!appIsReady) return;
+        if (!serverIsUp) return;
         const isLoginPage = page.url.pathname === "/login";
-        if (auth.status === "unauthenticated" && !isLoginPage) {
+        if (authentication.status === "UNAUTHENTICATED" && !isLoginPage) {
             goto("/login");
-        } else if (auth.status === "authenticated" && isLoginPage) {
+        } else if (authentication.status === "AUTHENTICATED" && isLoginPage) {
             goto("/feeds");
         }
     })
@@ -45,11 +47,10 @@
 </svelte:head>
 
 {#if serverIsUp}
-{#if appIsReady}
-    <AppHeader />
-    <BabyTabs />
-  {/if}
-  {@render children()}
+    {#if appIsReady}
+        <AppHeader />
+    {/if}
+    {@render children()}
 {:else}
    <div class="boot-loader">
     <div class="spinner"></div>
