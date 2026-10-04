@@ -19,9 +19,9 @@ public class Feed {
         this.finishedAt = finishedAt;
     }
 
-    public static Feed create(Long babyId, FeedEntry firstEntry) {
+    public static Feed create(Long babyId, FeedEntry firstEntry, Instant endTime) {
         Objects.requireNonNull(babyId);
-        return new Feed(null, babyId, List.of(firstEntry), null);
+        return new Feed(null, babyId, List.of(firstEntry), endTime);
     }
 
     public Feed withEntries(List<FeedEntry> newEntries) {

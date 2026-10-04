@@ -31,6 +31,7 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class FeedService implements StartFeedEntryUseCase,
@@ -129,7 +130,9 @@ public class FeedService implements StartFeedEntryUseCase,
                     return FeedEntry.startAndStop(entry.breastSide(), entry.startTime(), entry.endTime());
                 })
                 .toList();
-        Feed feed = Feed.create(babyId, feedEntries.getFirst()).withEntries(feedEntries);
+        List<SideEntry> sideEntries = sortEntriesPerLastStoppedTime(entries);
+        Instant endTime = sideEntries.getFirst().endTime();
+        Feed feed = Feed.create(babyId, feedEntries.getFirst(), endTime).withEntries(feedEntries);
         return feedRepositoryPort.save(feed);
     }
 
@@ -151,7 +154,7 @@ public class FeedService implements StartFeedEntryUseCase,
                     mergedFeedEntries.add(newEntry);
                     return existingFeed.withEntries(mergedFeedEntries);
                 })
-                .orElseGet(() -> Feed.create(babyId, newEntry));
+                .orElseGet(() -> Feed.create(babyId, newEntry, null));
         return feedRepositoryPort.save(targetEntry);
     }
 
@@ -235,5 +238,11 @@ public class FeedService implements StartFeedEntryUseCase,
         List<FeedEntry> updated = new ArrayList<>(feed.getEntries());
         updated.add(newEntry);
         return feedRepositoryPort.save(feed.withEntries(updated));
+    }
+
+    private List<SideEntry> sortEntriesPerLastStoppedTime(List<SideEntry> entries) {
+        return entries.stream()
+                .sorted(Comparator.comparing(SideEntry::endTime).reversed())
+                .collect(Collectors.toList());
     }
 }
