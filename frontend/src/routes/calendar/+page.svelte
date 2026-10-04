@@ -97,10 +97,8 @@
     <button class="scroll-hint up" onclick={() => scrollContainer.scrollTo({ top: 0, behavior: "smooth" })}>
       ↑ Semaine
     </button>
+    <a href="/feeds" class="back-link">← Retour au suivi</a>
   </section>
-  <button class="scroll-hint up" onclick={() => scrollContainer.scrollTo({ top: 0, behavior: "smooth" })}>
-      ← Retour au suivi
-    </button>
 </div>
 
 <style>
@@ -165,5 +163,15 @@
     text-align: center;
     color: var(--muted);
     padding: 40px 0;
+  }
+  .back-link {
+    margin-top: 24px;
+    color: var(--muted);
+    font-size: 14px;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
   }
 </style>
