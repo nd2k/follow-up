@@ -4,10 +4,14 @@
 
   let {
     feeds,
-    weekStart = $bindable(),
+    weekStart,
+    onPrev,
+    onNext,
   }: {
     feeds: FeedResponse[];
     weekStart: Date;
+    onPrev: () => void; 
+    onNext: () => void;
   } = $props();
 
   const HOUR_MARKS = [0, 3, 6, 9, 12, 15, 18, 21, 24];
@@ -59,16 +63,13 @@
     }
     return map;
   });
-
-  function prevWeek() { weekStart = addWeeks(weekStart, -1); }
-  function nextWeek() { weekStart = addWeeks(weekStart, 1); }
 </script>
 
 <div class="week-timeline">
   <div class="header">
-    <button onclick={prevWeek} aria-label="Semaine précédente">‹</button>
+    <button onclick={onPrev} aria-label="Semaine précédente">‹</button>
     <span>{formatWeekRange(weekStart)}</span>
-    <button onclick={nextWeek} aria-label="Semaine suivante">›</button>
+    <button onclick={onNext} aria-label="Semaine suivante">›</button>
   </div>
 
   <div class="day-headers">

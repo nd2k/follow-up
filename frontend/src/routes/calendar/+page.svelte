@@ -1,7 +1,7 @@
 <script lang="ts">
   import { babyStore } from "#lib/stores/baby.svelte.ts";
   import Card from "#lib/components/Card.svelte";
-	import { dayKey, flattenEntries, startOfWeek, type ViewMode } from "#lib/utils/calendar.ts";
+	import { dayKey, flattenEntries, startOfWeek, monthGridRange, type ViewMode } from "#lib/utils/calendar.ts";
 	import type { FeedResponse } from "#lib/types/feed.ts";
 	import { listFeedsInRange } from "#lib/services/feedService.ts";
 	import WeekTimelineGrid from "#lib/components/WeekTimelineGrid.svelte";
@@ -11,37 +11,50 @@
     let babyId = $derived(babyStore.selectedId);
     let rangeFeeds = $state<FeedResponse[]>([]);
 
-    const today = new Date();
+    let focusDate = $state(new Date());
     let viewMode = $state<ViewMode>("week");
-    let year = $state(today.getFullYear());
-    let month = $state(today.getMonth());
-    let weekStart = $state(startOfWeek(today));
-    let selectedDayKey = $state(dayKey(today));
+    let year = $derived(focusDate.getFullYear());
+    let month = $derived(focusDate.getMonth());
+    let weekStart = $derived(startOfWeek(focusDate));
+    let selectedDayKey = $state(dayKey(new Date()));
 
-    let rangeFrom = $derived(viewMode === "week" ? weekStart : new Date(year, month, 1));
-    let rangeTo = $derived(
-        viewMode === "week" ? new Date(weekStart.getTime() + 7 * 86400000) : new Date(year, month + 1, 1)
+    
+    let rangeFrom = $derived(
+      viewMode === "week" ? weekStart : monthGridRange(year, month).from
     );
+    let rangeTo = $derived(
+      viewMode === "week" ? new Date(weekStart.getTime() + 7 * 86400000) : monthGridRange(year, month).to
+    );
+    let latestRequestId = 0;
 
     async function loadRange() {
         if (!babyId) return;
-        rangeFeeds = await listFeedsInRange(babyId, rangeFrom.toISOString(), rangeTo.toISOString());
+        const requestId = ++latestRequestId;
+        const result = await listFeedsInRange(babyId, rangeFrom.toISOString(), rangeTo.toISOString());
+        if (requestId === latestRequestId) {
+          rangeFeeds = result;
+        }
     }
 
      $effect(() => {
-        rangeFrom; rangeTo; babyId;
+        rangeFrom; 
+        rangeTo; 
+        babyId;
         loadRange();        
     });
 
-    function switchMode(mode: ViewMode) {
-        if (mode === "month") {
-        const ref = weekStart;
-        year = ref.getFullYear();
-        month = ref.getMonth();
-        } else {
-        weekStart = startOfWeek(new Date(year, month, 1));
-        }
-        viewMode = mode;
+     function switchMode(mode: ViewMode) {
+      viewMode = mode;
+    }
+
+    function prevWeek() { focusDate = new Date(focusDate.getTime() - 7 * 86400000); }
+    function nextWeek() { focusDate = new Date(focusDate.getTime() + 7 * 86400000); }
+    function prevMonth() { focusDate = new Date(year, month - 1, 1); }
+    function nextMonth() { focusDate = new Date(year, month + 1, 1); }
+
+    function selectDay(key: string) {
+      selectedDayKey = key;
+      focusDate = new Date(key);
     }
 
     let selectedDayFeeds = $derived(
@@ -62,11 +75,11 @@
 
     {#if viewMode === "week"}
       <Card>
-        <WeekTimelineGrid feeds={rangeFeeds} bind:weekStart />
+        <WeekTimelineGrid feeds={flattenEntries(rangeFeeds)} {weekStart} onPrev={prevWeek} onNext={nextWeek} />
       </Card>
     {:else}
       <Card>
-        <MonthCalendar feeds={rangeFeeds} bind:selectedDayKey bind:year bind:month />
+        <MonthCalendar feeds={rangeFeeds} {year} {month} {selectedDayKey} onSelectDay={selectDay} onPrev={prevMonth} onNext={nextMonth} />
       </Card>
       <Card>
         <DayTimeline feeds={selectedDayFeeds} dayKey={selectedDayKey} />

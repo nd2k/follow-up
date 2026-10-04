@@ -86,3 +86,11 @@ export function flattenEntries(feeds: FeedResponse[]): FeedEntryResponse[] {
     }))
   );
 }
+
+export function monthGridRange(year: number, month: number): { from: Date; to: Date } {
+  const grid = buildMonthGrid(year, month);
+  const from = grid[0].date;
+  const to = new Date(grid[grid.length - 1].date);
+  to.setDate(to.getDate() + 1);
+  return { from, to };
+}

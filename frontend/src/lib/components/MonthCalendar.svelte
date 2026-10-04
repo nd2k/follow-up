@@ -2,17 +2,10 @@
   import { buildMonthGrid, dayKey, WEEKDAY_LABELS, MONTH_LABELS } from "#lib/utils/calendar.ts";
   import type { FeedResponse } from "#lib/types/feed.ts";
 
-  let {
-    feeds,
-    selectedDayKey = $bindable(),
-    year = $bindable(),
-    month = $bindable(),
-  }: {
-    feeds: FeedResponse[];
-    selectedDayKey: string;
-    year: number;
-    month: number;
-  } = $props();
+  let { feeds, year, month, selectedDayKey, onSelectDay, onPrev, onNext }: {
+  feeds: FeedResponse[]; year: number; month: number; selectedDayKey: string;
+  onSelectDay: (key: string) => void; onPrev: () => void; onNext: () => void;
+} = $props();
 
   let grid = $derived(buildMonthGrid(year, month));
 
@@ -30,19 +23,13 @@
     return feedsByDay.get(key)?.length ?? 0;
   }
 
-  function prevMonth() {
-    if (month === 0) { month = 11; year -= 1; } else { month -= 1; }
-  }
-  function nextMonth() {
-    if (month === 11) { month = 0; year += 1; } else { month += 1; }
-  }
 </script>
 
 <div class="calendar">
   <div class="calendar-header">
-    <button onclick={prevMonth} aria-label="Mois précédent">‹</button>
+    <button onclick={onPrev} aria-label="Mois précédent">‹</button>
     <span>{MONTH_LABELS[month]} {year}</span>
-    <button onclick={nextMonth} aria-label="Mois suivant">›</button>
+    <button onclick={onNext} aria-label="Mois suivant">›</button>
   </div>
 
   <div class="weekdays">
@@ -58,7 +45,7 @@
         class:muted={!day.isCurrentMonth}
         class:today={day.isToday}
         class:selected={day.dayKey === selectedDayKey}
-        onclick={() => (selectedDayKey = day.dayKey)}
+        onclick={() => (onSelectDay(day.dayKey))}
       >
         <span class="day-number">{day.date.getDate()}</span>
         {#if feedCount(day.dayKey) > 0}
