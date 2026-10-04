@@ -41,7 +41,7 @@
     async function handleToggle(side: "LEFT" | "RIGHT") {
     if (!babyId) return;
     await feedSession.toggleChrono(babyId, side);
-    
+    await refreshHistoryAndStats(babyId);
   }
 
     async function handleManualSaved() {
