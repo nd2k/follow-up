@@ -26,6 +26,8 @@
   let leftEntry = $derived(feed.entries.find((e) => e.breastSide === "LEFT") ?? null);
   let rightEntry = $derived(feed.entries.find((e) => e.breastSide === "RIGHT") ?? null);
 
+  console.log("FeedDetailsModal --- leftEntry:", leftEntry, "rightEntry:", rightEntry);
+
   const initialLeftStart = $derived(leftEntry ? toDatetimeLocal(leftEntry.startTime) : "");
   const initialLeftEnd = $derived(leftEntry ? toDatetimeLocal(entryEnd(leftEntry).toISOString()) : "");
   const initialRightStart = $derived(rightEntry ? toDatetimeLocal(rightEntry.startTime) : "");
@@ -59,12 +61,12 @@
     const rightChanged = rightStart !== initialRightStart || rightEnd !== initialRightEnd;
     const results = await Promise.allSettled([
     leftEntry && leftChanged
-        ? editFeedEntry(babyId, feed.id, leftEntry.id, new Date(leftStart).toISOString(), new Date(leftEnd).toISOString())
+        ? editFeedEntry(babyId, feed.id, leftEntry.id, new Date(leftStart).toISOString(), new Date(leftStart).toISOString())
         : !leftEntry && addingLeft
           ? addEntryToFeed(babyId, feed.id, "LEFT", new Date(leftStart).toISOString(), new Date(leftEnd).toISOString())
           : Promise.resolve(),
       rightEntry && rightChanged
-        ? editFeedEntry(babyId, feed.id, rightEntry.id, new Date(rightStart).toISOString(), new Date(rightEnd).toISOString())
+        ? editFeedEntry(babyId, feed.id, rightEntry.id, new Date(rightStart).toISOString(), new Date(rightStart).toISOString())
         : !rightEntry && addingRight
           ? addEntryToFeed(babyId, feed.id, "RIGHT", new Date(rightStart).toISOString(), new Date(rightEnd).toISOString())
           : Promise.resolve(),
