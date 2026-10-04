@@ -1,129 +1,167 @@
 <script lang="ts">
+  import { onMount } from "svelte";
   import { babyStore } from "#lib/stores/baby.svelte.ts";
-  import Card from "#lib/components/Card.svelte";
-	import { dayKey, flattenEntries, startOfWeek, monthGridRange, type ViewMode } from "#lib/utils/calendar.ts";
-	import type { FeedResponse } from "#lib/types/feed.ts";
-	import { listFeedsInRange } from "#lib/services/feedService.ts";
-	import WeekTimelineGrid from "#lib/components/WeekTimelineGrid.svelte";
-	import MonthCalendar from "#lib/components/MonthCalendar.svelte";
-	import DayTimeline from "#lib/components/DayTimeline.svelte";
+  import { listFeedsInRange } from "#lib/services/feedService.ts";
+  import { dayKey, startOfWeek, flattenEntries, monthGridRange } from "#lib/utils/calendar.ts";
+  import type { FeedResponse } from "#lib/types/feed.ts";
 
-    let babyId = $derived(babyStore.selectedId);
-    let rangeFeeds = $state<FeedResponse[]>([]);
+  import MonthCalendar from "#lib/components/MonthCalendar.svelte";
+  import WeekTimelineGrid from "#lib/components/WeekTimelineGrid.svelte";
+  import DayTimeline from "#lib/components/DayTimeline.svelte";
 
-    let focusDate = $state(new Date());
-    let viewMode = $state<ViewMode>("week");
-    let year = $derived(focusDate.getFullYear());
-    let month = $derived(focusDate.getMonth());
-    let weekStart = $derived(startOfWeek(focusDate));
-    let selectedDayKey = $state(dayKey(new Date()));
+  let focusDate = $state(new Date());
+  let selectedDayKey = $state(dayKey(new Date()));
 
-    
-    let rangeFrom = $derived(
-      viewMode === "week" ? weekStart : monthGridRange(year, month).from
-    );
-    let rangeTo = $derived(
-      viewMode === "week" ? new Date(weekStart.getTime() + 7 * 86400000) : monthGridRange(year, month).to
-    );
-    let latestRequestId = 0;
+  let weekStart = $derived(startOfWeek(focusDate));
+  let year = $derived(focusDate.getFullYear());
+  let month = $derived(focusDate.getMonth());
 
-    async function loadRange() {
-        if (!babyId) return;
-        const requestId = ++latestRequestId;
-        const result = await listFeedsInRange(babyId, rangeFrom.toISOString(), rangeTo.toISOString());
-        if (requestId === latestRequestId) {
-          rangeFeeds = result;
-        }
-    }
+  let babyId = $derived(babyStore.selectedId);
 
-     $effect(() => {
-        rangeFrom; 
-        rangeTo; 
-        babyId;
-        loadRange();        
-    });
+  let weekFeeds = $state<FeedResponse[]>([]);
+  let monthFeeds = $state<FeedResponse[]>([]);
 
-     function switchMode(mode: ViewMode) {
-      viewMode = mode;
-    }
+  let weekSection: HTMLDivElement;
+  let scrollContainer: HTMLDivElement;
 
-    function prevWeek() { focusDate = new Date(focusDate.getTime() - 7 * 86400000); }
-    function nextWeek() { focusDate = new Date(focusDate.getTime() + 7 * 86400000); }
-    function prevMonth() { focusDate = new Date(year, month - 1, 1); }
-    function nextMonth() { focusDate = new Date(year, month + 1, 1); }
+  // Deux gardes indépendantes, une par plage — les deux requêtes vivent en parallèle désormais.
+  let latestWeekRequestId = 0;
+  let latestMonthRequestId = 0;
 
-    function selectDay(key: string) {
-      selectedDayKey = key;
-      focusDate = new Date(key);
-    }
+  async function loadWeek() {
+    if (!babyId) return;
+    const requestId = ++latestWeekRequestId;
+    const to = new Date(weekStart.getTime() + 7 * 86400000);
+    const result = await listFeedsInRange(babyId, weekStart.toISOString(), to.toISOString());
+    if (requestId === latestWeekRequestId) weekFeeds = result;
+  }
 
-    let selectedDayFeeds = $derived(
-      flattenEntries(rangeFeeds.filter((f) => dayKey(new Date(f.startTime)) === selectedDayKey))
-    );
+  async function loadMonth() {
+    if (!babyId) return;
+    const requestId = ++latestMonthRequestId;
+    const { from, to } = monthGridRange(year, month);
+    const result = await listFeedsInRange(babyId, from.toISOString(), to.toISOString());
+    if (requestId === latestMonthRequestId) monthFeeds = result;
+  }
+
+  $effect(() => {
+    weekStart; babyId;
+    loadWeek();
+  });
+
+  $effect(() => {
+    year; month; babyId;
+    loadMonth();
+  });
+
+  function prevWeek() { focusDate = new Date(focusDate.getTime() - 7 * 86400000); }
+  function nextWeek() { focusDate = new Date(focusDate.getTime() + 7 * 86400000); }
+  function prevMonth() { focusDate = new Date(year, month - 1, 1); }
+  function nextMonth() { focusDate = new Date(year, month + 1, 1); }
+
+  function selectDay(key: string) {
+    selectedDayKey = key;
+    focusDate = new Date(key);
+  }
+
+  let selectedDayFeeds = $derived(
+    flattenEntries(monthFeeds.filter((f) => dayKey(new Date(f.startTime)) === selectedDayKey))
+  );
+
+  onMount(() => {
+    // Positionne directement sur la semaine au chargement — le mois reste accessible en scrollant vers le haut.
+    weekSection.scrollIntoView({ behavior: "instant" as ScrollBehavior });
+  });
 </script>
 
-<main>  
-  {#if !babyId}
-    <Card>
+<div class="scroll-container" bind:this={scrollContainer}>
+  <section class="snap-section month-section">
+    {#if !babyId}
       <p class="empty">Aucun bébé enregistré.</p>
-    </Card>
-  {:else}
-    <div class="mode-switch">
-      <button class:active={viewMode === "week"} onclick={() => switchMode("week")}>Semaine</button>
-      <button class:active={viewMode === "month"} onclick={() => switchMode("month")}>Mois</button>
-    </div>
-
-    {#if viewMode === "week"}
-      <Card>
-        <WeekTimelineGrid feeds={flattenEntries(rangeFeeds)} {weekStart} onPrev={prevWeek} onNext={nextWeek} />
-      </Card>
     {:else}
-      <Card>
-        <MonthCalendar feeds={rangeFeeds} {year} {month} {selectedDayKey} onSelectDay={selectDay} onPrev={prevMonth} onNext={nextMonth} />
-      </Card>
-      <Card>
+      <div class="month-wrap">
+        <MonthCalendar feeds={monthFeeds} {year} {month} {selectedDayKey} onSelectDay={selectDay} onPrev={prevMonth} onNext={nextMonth} />
         <DayTimeline feeds={selectedDayFeeds} dayKey={selectedDayKey} />
-      </Card>
+      </div>
+      <button class="scroll-hint down" onclick={() => weekSection.scrollIntoView({ behavior: "smooth" })}>
+        Semaine ↓
+      </button>
     {/if}
-  {/if}
-  <a href="/feeds" class="back-link">← Retour au suivi</a>
-</main>
+  </section>
+
+  <section class="snap-section week-section" bind:this={weekSection}>
+    <button class="scroll-hint up" onclick={() => scrollContainer.scrollTo({ top: 0, behavior: "smooth" })}>
+      ↑ Mois
+    </button>
+    {#if babyId}
+      <div class="week-wrap">
+        <WeekTimelineGrid feeds={flattenEntries(weekFeeds)} {weekStart} onPrev={prevWeek} onNext={nextWeek} />
+      </div>
+    {/if}
+  </section>
+</div>
 
 <style>
-  main {
+  .scroll-container {
+    height: 100dvh;
+    overflow-y: auto;
+    scroll-snap-type: y mandatory;
+    scroll-behavior: smooth;
+  }
+  .snap-section {
+    scroll-snap-align: start;
+    min-height: 100dvh;
     display: flex;
     flex-direction: column;
-    align-items: center;
-    gap: 16px;
-    padding: 4px 20px 48px;
+    padding: 4px 20px 24px;
     max-width: 420px;
     margin: 0 auto;
+    box-sizing: border-box;
   }
-  .mode-switch {
+  .month-section {
+    justify-content: flex-start;
+    gap: 16px;
+    padding-top: calc(16px + env(safe-area-inset-top, 0px));
+  }
+  .month-wrap {
     display: flex;
-    gap: 6px;
-    width: 100%;
-  }
-  .mode-switch button {
-    flex: 1;
-    padding: 10px 0;
-    border-radius: 12px;
-    border: 1.5px solid var(--surface-border);
+    flex-direction: column;
+    gap: 16px;
     background: var(--surface);
+    border: 1px solid var(--surface-border);
+    border-radius: var(--card-radius);
+    box-shadow: var(--card-shadow);
+    padding: 20px;
+  }
+  .week-section {
+    justify-content: center;
+    gap: 16px;
+  }
+  .week-wrap {
+    background: var(--surface);
+    border: 1px solid var(--surface-border);
+    border-radius: var(--card-radius);
+    box-shadow: var(--card-shadow);
+    padding: 20px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .scroll-hint {
+    background: none;
+    border: none;
     color: var(--muted);
+    font-size: 13px;
     font-weight: 500;
-    font-size: 14px;
     cursor: pointer;
+    padding: 10px 0;
+    text-align: center;
   }
-  .mode-switch button.active {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: #fff;
-  }
-  .back-link {
-    margin-top: 24px;
+  .scroll-hint.down { margin-top: auto; }
+  .empty {
+    text-align: center;
     color: var(--muted);
-    font-size: 14px;
-    text-decoration: none;
+    padding: 40px 0;
   }
 </style>
