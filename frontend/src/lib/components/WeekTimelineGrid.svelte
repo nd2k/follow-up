@@ -1,6 +1,6 @@
 <script lang="ts">
-  import { addWeeks, formatWeekRange, dayKey, WEEKDAY_LABELS } from "#lib/utils/calendar.ts";
-  import type { FeedResponse } from "#lib/types/feed.ts";
+  import {  formatWeekRange, dayKey, WEEKDAY_LABELS } from "#lib/utils/calendar.ts";
+  import type { FeedEntryResponse } from "#lib/types/feed.ts";
 
   let {
     feeds,
@@ -8,7 +8,7 @@
     onPrev,
     onNext,
   }: {
-    feeds: FeedResponse[];
+    feeds: FeedEntryResponse[];
     weekStart: Date;
     onPrev: () => void; 
     onNext: () => void;
