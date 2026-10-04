@@ -1,25 +1,25 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
-  import { auth } from "#lib/stores/auth.svelte.ts";
+    import { goto } from "$app/navigation";
+    import { authentication } from "#lib/stores/auth.svelte.ts";
 
-  let email = $state("");
-  let password = $state("");
-  let error = $state<string | null>(null);
-  let loading = $state(false);
+    let email = $state("");
+    let password = $state("");
+    let error = $state<string | null>(null);
+    let loading = $state(false);
 
-  async function handleSubmit(e: Event) {
-    e.preventDefault();
-    error = null;
-    loading = true;
-    try {
-      await auth.login(email, password);
-      goto("/feeds");
-    } catch (err) {
-      error = err instanceof Error ? err.message : "Erreur inconnue";
-    } finally {
-      loading = false;
+    async function handleSubmit(e: Event) {
+        e.preventDefault();
+        error = null;
+        loading = true;
+        try {
+            await authentication.login(email, password);
+            goto("/feeds");
+        } catch (err) {
+            error = err instanceof Error ? err.message : "Une erreur lors de la connexion s'est produite";
+        } finally {
+            loading = false;
+        }
     }
-  }
 </script>
 
 <main>

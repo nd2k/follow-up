@@ -1,59 +1,65 @@
 package com.nd2k.follow_up.feed.core.domain;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 public class Feed {
 
     private final Long id;
     private final Long babyId;
-    private final Long sessionId;
-    private final BreastSide breastSide;
-    private final Instant startTime;
-    private final Instant endTime;
+    private final List<FeedEntry> entries;
+    private final Instant finishedAt;
 
-    public Feed(Long id, Long babyId, Long sessionId, BreastSide breastSide, Instant startTime, Instant endTime) {
+    public Feed(Long id, Long babyId, List<FeedEntry> entries, Instant finishedAt) {
         this.id = id;
         this.babyId = babyId;
-        this.sessionId = sessionId;
-        this.breastSide = breastSide;
-        this.startTime = startTime;
-        this.endTime = endTime;
+        this.entries = List.copyOf(entries);
+        this.finishedAt = finishedAt;
     }
 
-    public static Feed startFeed(Long babyId, Long sessionId, BreastSide breastSide, Instant startTime) {
-        Objects.requireNonNull(babyId, "babyId ne peut pas être null");
-        Objects.requireNonNull(sessionId, "sessionId ne peut pas être null");
-        Objects.requireNonNull(breastSide, "Cannot create a Feed without a breast side");
-        Objects.requireNonNull(startTime, "startTime ne cannot be null");
-        return new Feed(null, babyId, sessionId, breastSide, startTime, null);
+    public static Feed create(Long babyId, FeedEntry firstEntry) {
+        Objects.requireNonNull(babyId);
+        return new Feed(null, babyId, List.of(firstEntry), null);
     }
 
-    public Feed stopFeed(Instant endTime) {
-        if (this.endTime != null) {
-            throw new IllegalStateException("This feed is already finished");
-        }
-        if (endTime.isBefore(this.startTime)) {
-            throw new IllegalArgumentException("End time cannot be before start time");
-        }
-        return new Feed(this.id, this.babyId, this.sessionId, this.breastSide, this.startTime, endTime);
+    public Feed withEntries(List<FeedEntry> newEntries) {
+        return new Feed(id, babyId, newEntries, finishedAt);
     }
 
     public boolean isOngoing() {
-        return endTime == null;
+        return finishedAt == null;
     }
 
-    public long durationSeconds() {
-        if (isOngoing()) {
-            throw new IllegalStateException("Cannot calculate duration with ongoing feed");
+    public Instant getStartTime() {
+        return entries.stream().map(FeedEntry::getStartTime).min(Instant::compareTo)
+                .orElseThrow(() -> new IllegalStateException("Une tétée doit avoir au moins une entrée"));
+    }
+
+    public Instant getEndTime() {
+        if (isOngoing()) return null;
+        return entries.stream().map(FeedEntry::getLastStoppedAt).max(Instant::compareTo).orElseThrow();
+    }
+
+    public long totalDurationInSeconds() {
+        return entries.stream().mapToLong(FeedEntry::durationInSeconds).sum();
+    }
+
+    public static Feed reconstitute(Long id, Long babyId, List<FeedEntry> entries, Instant finishedAt) {
+        return new Feed(id, babyId, entries, finishedAt);
+    }
+
+    public Feed finish(Instant finishTime) {
+        if (finishedAt != null) throw new IllegalStateException("Cette tétée est déjà terminée");
+        List<FeedEntry> finishedFeedEntryList = new ArrayList<>();
+        for (FeedEntry feedEntry: entries) {
+            finishedFeedEntryList.add(feedEntry.isOngoing() ? feedEntry.pause(finishTime): feedEntry);
         }
-        return endTime.getEpochSecond() - startTime.getEpochSecond();
+        return new Feed(id, babyId, finishedFeedEntryList, finishTime);
     }
 
     public Long getId() { return id; }
     public Long getBabyId() { return babyId; }
-    public Long getSessionId() { return sessionId; }
-    public BreastSide getBreastSide() { return breastSide; }
-    public Instant getStartTime() { return startTime; }
-    public Instant getEndTime() { return endTime; }
+    public List<FeedEntry> getEntries() { return entries; }
 }

@@ -1,7 +1,7 @@
 <script lang="ts">
-  import type { FeedResponse } from "#lib/types/feed.ts";
+  import type { FeedEntryResponse } from "#lib/types/feed.ts";
 
-  let { feeds, dayKey }: { feeds: FeedResponse[]; dayKey: string } = $props();
+  let { feeds, dayKey }: { feeds: FeedEntryResponse[]; dayKey: string } = $props();
 
   const HOUR_MARKS = [0, 6, 12, 18, 24];
 
@@ -13,7 +13,7 @@
 
   interface Segment {
     id: number;
-    side: "LEFT" | "RIGHT";
+    breastSide: "LEFT" | "RIGHT";
     leftPercent: number;
     widthPercent: number;
     timeLabel: string;
@@ -25,10 +25,10 @@
       .map((f) => {
         const start = percentOfDay(f.startTime);
         const end = f.endTime ? percentOfDay(f.endTime) : start;
-        const width = Math.max(end - start, 0.6); // largeur minimale pour rester visible
+        const width = Math.max(end - start, 0.6);
         return {
           id: f.id,
-          side: f.side,
+          breastSide: f.breastSide,
           leftPercent: start,
           widthPercent: width,
           timeLabel: new Date(f.startTime).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }),
@@ -51,8 +51,8 @@
       {#each segments as seg (seg.id)}
         <div
           class="segment"
-          class:left={seg.side === "LEFT"}
-          class:right={seg.side === "RIGHT"}
+          class:left={seg.breastSide === "LEFT"}
+          class:right={seg.breastSide === "RIGHT"}
           style:left="{seg.leftPercent}%"
           style:width="{seg.widthPercent}%"
           title="{seg.timeLabel}"

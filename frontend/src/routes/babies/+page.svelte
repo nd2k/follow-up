@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { goto } from "$app/navigation";
-  import { babyStore } from "#lib/stores/selectedBaby.svelte.ts";
+  import { babyStore } from "#lib/stores/baby.svelte.ts";
   import { createBaby } from "#lib/services/babyService.ts";
 
   let name = $state("");

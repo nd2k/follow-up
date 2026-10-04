@@ -1,69 +1,66 @@
 <script lang="ts">
-  import { goto } from "$app/navigation";
-  import { auth } from "#lib/stores/auth.svelte.ts";
-  import { theme } from "#lib/stores/theme.svelte.ts";
+    import { goto } from "$app/navigation";
+    import { authentication } from "#lib/stores/auth.svelte.ts";
+    import { theme } from "#lib/stores/theme.svelte.ts";
 
-  let menuOpen = $state(false);
-  let menuRef: HTMLDivElement;
+    let menuOpen = $state(false);
+    let menuRef: HTMLDivElement;
 
-  function toggleMenu() {
-    menuOpen = !menuOpen;
-  }
-
-  function closeMenu() {
-    menuOpen = false;
-  }
-
-  function handleClickOutside(e: MouseEvent) {
-    if (menuOpen && menuRef && !menuRef.contains(e.target as Node)) {
-      closeMenu();
+    function toggleMenu() {
+        menuOpen = !menuOpen;
     }
-  }
 
-  function goToBabies() {
-    closeMenu();
-    goto("/babies");
-  }
-
-  function handleLogout() {
-    closeMenu();
-    auth.logout();
-    goto("/login");
-  }
-
-  $effect(() => {
-    if (menuOpen) {
-      window.addEventListener("click", handleClickOutside);
-      return () => window.removeEventListener("click", handleClickOutside);
+    function closeMenu() {
+        menuOpen = false;
     }
-  });
 
-  function themeLabel(choice: string): string {
-    if (choice === "light") return "Thème : clair";
-    if (choice === "dark") return "Thème : sombre";
-    return "Thème : auto";
-  }
+    function handleClickOutside(e: MouseEvent) {
+        if (menuOpen && menuRef && !menuRef.contains(e.target as Node)) {
+            closeMenu();
+        }
+    }
+
+    function goToBabies() {
+        closeMenu();
+        goto("/babies");
+    }
+
+    function handleLogout() {
+        closeMenu();
+        authentication.logout();
+        goto("/login");
+    }
+
+    function themeLabel(choice: string): string {
+        return choice === "light" ? "Thème : clair" : "Thème : sombre";
+    }
+
+    $effect(() => {
+        if (menuOpen) {
+            window.addEventListener("click", handleClickOutside);
+            return () => window.removeEventListener("click", handleClickOutside);
+        }
+    });
 </script>
 
 <header>
-  <h1>Follow-up</h1>
+    <h1>Follow-up</h1>
+    <div class="menu-wrap" bind:this={menuRef}>
+        <button class="burger" onclick={toggleMenu} aria-label="Menu">
+        <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+            <path d="M3 6h16M3 11h16M3 16h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
+        </svg>
+        </button>
 
-  <div class="menu-wrap" bind:this={menuRef}>
-    <button class="burger" onclick={toggleMenu} aria-label="Menu">
-      <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
-        <path d="M3 6h16M3 11h16M3 16h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" />
-      </svg>
-    </button>
-
-    {#if menuOpen}
-      <div class="dropdown">
-        <button onclick={goToBabies}>Gérer les bébés</button>
-        <button onclick={() => { closeMenu(); goto("/calendar"); }}>Calendrier</button>
-        <button onclick={() => theme.toggle()}>{themeLabel(theme.choice)}</button>
-        <button class="danger" onclick={handleLogout}>Se déconnecter</button>
-      </div>
-    {/if}
-  </div>
+        {#if menuOpen}
+        <div class="dropdown">
+            <button onclick={goToBabies}>Gérer les bébés</button>
+            <button onclick={() => { closeMenu(); goto("/calendar"); }}>Calendrier</button>
+            <button onclick={() => theme.toggleTheme()}>{themeLabel(theme.themeChoice)}</button>
+            <button class="danger" onclick={handleLogout}>Se déconnecter</button>
+        </div>
+        {/if}
+    </div>
 </header>
 
 <style>
@@ -78,7 +75,6 @@
     box-sizing: border-box;
   }
   h1 {
-    font-family: "Fraunces", serif;
     font-weight: 500;
     font-size: 28px;
     margin: 0;

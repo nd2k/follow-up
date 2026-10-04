@@ -42,7 +42,6 @@
 
   interface Segment {
     id: number;
-    side: "LEFT" | "RIGHT";
     topPercent: number;
     heightPercent: number;
   }
@@ -56,7 +55,7 @@
       const end = feed.endTime ? percentOfDay(feed.endTime) : top;
       const height = Math.max(end - top, 0.8);
       if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push({ id: feed.id, side: feed.breastSide, topPercent: top, heightPercent: height });
+      map.get(key)!.push({ id: feed.id, topPercent: top, heightPercent: height });
     }
     return map;
   });
@@ -94,9 +93,7 @@
         <div class="day-col" class:today={day.isToday}>
           {#each segmentsByDay.get(day.dayKey) ?? [] as seg (seg.id)}
             <div
-              class="segment"
-              class:left={seg.side === "LEFT"}
-              class:right={seg.side === "RIGHT"}
+              class="segment left"
               style:top="{seg.topPercent}%"
               style:height="{seg.heightPercent}%"
             ></div>
@@ -107,8 +104,7 @@
   </div>
 
   <div class="legend">
-    <span class="legend-item"><span class="dot left"></span> Gauche</span>
-    <span class="legend-item"><span class="dot right"></span> Droite</span>
+    <span class="legend-item"><span class="dot left"></span> Tétée</span>
   </div>
 </div>
 
@@ -203,7 +199,6 @@
     min-height: 3px;
   }
   .segment.left { background: var(--left); }
-  .segment.right { background: var(--right); }
 
   .legend {
     display: flex;
@@ -220,5 +215,4 @@
   }
   .dot { width: 8px; height: 8px; border-radius: 50%; }
   .dot.left { background: var(--left); }
-  .dot.right { background: var(--right); }
 </style>

@@ -1,42 +1,34 @@
-type ThemeChoice = "light" | "dark" | "system";
+type ThemeChoice = "light" | "dark";
 
-const STORAGE_KEY = "allaitement_theme";
+const STORAGE_KEY = "follow-up-theme";
 
 function getStoredTheme(): ThemeChoice {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  return stored === "light" || stored === "dark" ? stored : "system";
+    const storedTheme = localStorage.getItem(STORAGE_KEY);
+    return storedTheme === "light" ? "light" : "dark";
 }
 
-let choice = $state<ThemeChoice>("system");
+let themeChoice = $state<ThemeChoice>("light");
 
-function apply(value: ThemeChoice) {
-  if (value === "system") {
-    document.documentElement.removeAttribute("data-theme");
-  } else {
+function applyTheme(value: ThemeChoice) {
     document.documentElement.setAttribute("data-theme", value);
-  }
 }
 
 export const theme = {
-  get choice() { return choice; },
+    get themeChoice() { return themeChoice; },
 
-  init() {
-    choice = getStoredTheme();
-    apply(choice);
-  },
+    init() {
+        themeChoice = getStoredTheme();
+        applyTheme(themeChoice);
+    },
 
-  set(value: ThemeChoice) {
-    choice = value;
-    apply(value);
-    if (value === "system") {
-      localStorage.removeItem(STORAGE_KEY);
-    } else {
-      localStorage.setItem(STORAGE_KEY, value);
+    set(value: ThemeChoice) {
+        themeChoice = value;
+        applyTheme(value);
+        localStorage.setItem(STORAGE_KEY, value);
+    },
+
+    toggleTheme() {
+        const next: ThemeChoice = themeChoice === 'light' ? "dark" : "light";
+        this.set(next);
     }
-  },
-
-  toggle() {
-    const next: ThemeChoice = choice === "system" ? "light" : choice === "light" ? "dark" : "system";
-    this.set(next);
-  },
-};
+}

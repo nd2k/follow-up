@@ -1,33 +1,37 @@
 <script lang="ts">
-  let { lastFeedEndTime }: { lastFeedEndTime: string | null } = $props();
+    let { lastFeedstartTime }: { lastFeedstartTime: string | null } = $props();
 
-  let elapsedMs = $state(0);
+    let elapsedMs = $state(0);
 
-  $effect(() => {
-    if (!lastFeedEndTime) {        
-      elapsedMs = 0;
-      return;
+    function calculateEllapseTime(startTime: number) {
+        return Math.max(0, Date.now() - startTime);
     }
-    const end = new Date(lastFeedEndTime).getTime();
-    elapsedMs = Math.max(0, Date.now() - end);
-    const interval = setInterval(() => {
-        elapsedMs = Math.max(0, Date.now() - end);
-    }, 1000);
-    return () => clearInterval(interval);
-  });
 
-  function fmtElapsed(ms: number): string {
-    const totalSec = Math.floor(ms / 1000);
-    const h = Math.floor(totalSec / 3600);
-    const m = Math.floor((totalSec % 3600) / 60);
-    if (h > 0) return `${h}h ${String(m).padStart(2, "0")}min`;
-    return `${m} min`;
-  }
+    $effect(() => {
+        if (!lastFeedstartTime) {
+            elapsedMs = 0;
+            return;
+        }
+        const endTime = new Date(lastFeedstartTime).getTime();
+        elapsedMs = calculateEllapseTime(endTime);
+        const interval = setInterval(() => {
+            elapsedMs = calculateEllapseTime(endTime);
+        }, 1000);
+        return () => clearInterval(interval);
+    })
+
+    function formatEllapseTime(ellapseInMs: number): string {
+        const totalSeconds = Math.floor(ellapseInMs / 1000);
+        const hour = Math.floor(totalSeconds / 3600);
+        const minutes = Math.floor((totalSeconds % 3600) / 60);
+        if (hour > 0) return `${hour}h ${String(minutes).padStart(2, "0")}min`;
+        return `${minutes}min`;
+    }
 </script>
 
 <div class="time-since">
-  {#if lastFeedEndTime}
-    <div class="value">{fmtElapsed(elapsedMs)}</div>
+  {#if lastFeedstartTime}
+    <div class="value">{formatEllapseTime(elapsedMs)}</div>
     <div class="label">depuis la dernière tétée</div>
   {:else}
     <div class="label">Aucune tétée enregistrée pour l'instant</div>
@@ -49,7 +53,7 @@
     color: var(--text);
   }
   .label {
-    font-size: 12.5px;
+    font-size:  1rem;
     color: var(--muted);
   }
 </style>

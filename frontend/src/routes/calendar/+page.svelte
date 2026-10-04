@@ -1,58 +1,55 @@
 <script lang="ts">
-  import { babyStore } from "#lib/stores/selectedBaby.svelte.ts";
-  import { listFeedsInRange } from "#lib/services/feedService.ts";
-  import { dayKey, startOfWeek } from "#lib/utils/calendar.ts";
-  import type { FeedResponse } from "#lib/types/feed.ts";
-
+  import { babyStore } from "#lib/stores/baby.svelte.ts";
   import Card from "#lib/components/Card.svelte";
-  import MonthCalendar from "#lib/components/MonthCalendar.svelte";
-  import WeekTimelineGrid from "#lib/components/WeekTimelineGrid.svelte";
-  import DayTimeline from "#lib/components/DayTimeline.svelte";
+	import { dayKey, flattenEntries, startOfWeek, type ViewMode } from "#lib/utils/calendar.ts";
+	import type { FeedResponse } from "#lib/types/feed.ts";
+	import { listFeedsInRange } from "#lib/services/feedService.ts";
+	import WeekTimelineGrid from "#lib/components/WeekTimelineGrid.svelte";
+	import MonthCalendar from "#lib/components/MonthCalendar.svelte";
+	import DayTimeline from "#lib/components/DayTimeline.svelte";
 
-  type ViewMode = "week" | "month";
+    let babyId = $derived(babyStore.selectedId);
+    let rangeFeeds = $state<FeedResponse[]>([]);
 
-  const today = new Date();
-  let viewMode = $state<ViewMode>("week");
-  let year = $state(today.getFullYear());
-  let month = $state(today.getMonth());
-  let weekStart = $state(startOfWeek(today));
-  let selectedDayKey = $state(dayKey(today));
+    const today = new Date();
+    let viewMode = $state<ViewMode>("week");
+    let year = $state(today.getFullYear());
+    let month = $state(today.getMonth());
+    let weekStart = $state(startOfWeek(today));
+    let selectedDayKey = $state(dayKey(today));
 
-  let babyId = $derived(babyStore.selectedId);
-  let rangeFeeds = $state<FeedResponse[]>([]);
+    let rangeFrom = $derived(viewMode === "week" ? weekStart : new Date(year, month, 1));
+    let rangeTo = $derived(
+        viewMode === "week" ? new Date(weekStart.getTime() + 7 * 86400000) : new Date(year, month + 1, 1)
+    );
 
-  let rangeFrom = $derived(viewMode === "week" ? weekStart : new Date(year, month, 1));
-  let rangeTo = $derived(
-    viewMode === "week" ? new Date(weekStart.getTime() + 7 * 86400000) : new Date(year, month + 1, 1)
-  );
-
-  async function loadRange() {
-    if (!babyId) return;
-    rangeFeeds = await listFeedsInRange(babyId, rangeFrom.toISOString(), rangeTo.toISOString());
-  }
-
-  $effect(() => {
-    rangeFrom; rangeTo; babyId;
-    loadRange();
-  });
-
-  function switchMode(mode: ViewMode) {
-    if (mode === "month") {
-      const ref = weekStart;
-      year = ref.getFullYear();
-      month = ref.getMonth();
-    } else {
-      weekStart = startOfWeek(new Date(year, month, 1));
+    async function loadRange() {
+        if (!babyId) return;
+        rangeFeeds = await listFeedsInRange(babyId, rangeFrom.toISOString(), rangeTo.toISOString());
     }
-    viewMode = mode;
-  }
 
-  let selectedDayFeeds = $derived(
-    rangeFeeds.filter((f) => dayKey(new Date(f.startTime)) === selectedDayKey)
-  );
+     $effect(() => {
+        rangeFrom; rangeTo; babyId;
+        loadRange();        
+    });
+
+    function switchMode(mode: ViewMode) {
+        if (mode === "month") {
+        const ref = weekStart;
+        year = ref.getFullYear();
+        month = ref.getMonth();
+        } else {
+        weekStart = startOfWeek(new Date(year, month, 1));
+        }
+        viewMode = mode;
+    }
+
+    let selectedDayFeeds = $derived(
+      flattenEntries(rangeFeeds.filter((f) => dayKey(new Date(f.startTime)) === selectedDayKey))
+    );
 </script>
 
-<main>
+<main>  
   {#if !babyId}
     <Card>
       <p class="empty">Aucun bébé enregistré.</p>
@@ -109,5 +106,11 @@
     background: var(--accent);
     border-color: var(--accent);
     color: #fff;
+  }
+  .back-link {
+    margin-top: 24px;
+    color: var(--muted);
+    font-size: 14px;
+    text-decoration: none;
   }
 </style>

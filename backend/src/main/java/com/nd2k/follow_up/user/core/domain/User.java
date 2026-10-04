@@ -7,7 +7,8 @@ public class User {
     private final String passwordHash;
     private final String name;
 
-    private User(Long id, String email, String passwordHash, String name) {
+
+    public User(Long id, String email, String passwordHash, String name) {
         this.id = id;
         this.email = email;
         this.passwordHash = passwordHash;

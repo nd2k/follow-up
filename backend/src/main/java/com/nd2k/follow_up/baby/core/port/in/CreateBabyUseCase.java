@@ -5,5 +5,5 @@ import com.nd2k.follow_up.baby.core.domain.Baby;
 import java.time.LocalDate;
 
 public interface CreateBabyUseCase {
-    Baby create(String name, LocalDate birthDate, Long creatorUserId);
+    Baby create(String name, LocalDate birthDate, Long creatorUserId, int size);
 }

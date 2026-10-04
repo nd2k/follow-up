@@ -1,131 +1,119 @@
 <script lang="ts">
-  import { leftTimer, rightTimer, initOngoingFeeds, startSide } from "#lib/stores/ongoingFeed.svelte.ts";
-  import { babyStore } from "#lib/stores/selectedBaby.svelte.ts";
-  import { listFeeds, deleteFeed } from "#lib/services/feedService.ts";
-  import { getStatsToday } from "#lib/services/statService.ts";
-  import type { FeedResponse, StatsResponse } from "#lib/types/feed.ts";
+    import Card from "#lib/components/Card.svelte";
+	import TimeSinceLastFeed from "#lib/components/TimeSinceLastFeed.svelte";
+	import { listOfFeeds } from "#lib/services/feedService.ts";
+    import { babyStore } from "#lib/stores/baby.svelte.ts";
+	import { initiateActiveFeed } from "#lib/stores/feed.svelte.ts";
+    import type { FeedResponse, StatsResponse } from "#lib/types/feed.ts";
+    import { getStatsToday } from "#lib/services/statsService.ts";
+    import StatsCards from "#lib/components/StatsCards.svelte";
+    import FeedHistory from "#lib/components/FeedHistory.svelte";
+    import SideTimerCard from "#lib/components/SideTimerCard.svelte";
+    import { feedSession } from "#lib/stores/feed.svelte.ts";
+    import ManualFeedModal from "#lib/components/ManualFeedModal.svelte";
 
-  import Card from "#lib/components/Card.svelte";
-  import SideTimerCard from "#lib/components/SideTimerCard.svelte";
-  import StatsCards from "#lib/components/StatsCards.svelte";
-  import FeedHistory from "#lib/components/FeedHistory.svelte";
-  import TimeSinceLastFeed from "#lib/components/TimeSinceLastFeed.svelte";
-  import ManualFeedModal from "#lib/components/ManualFeedModal.svelte";
+    let babyId =  $derived(babyStore.selectedId);
+    let finishedFeeds = $state<FeedResponse[]>([]);
+    let stats = $state<StatsResponse | null>(null);
+    let showManualModal = $state(false);
 
-  let stats = $state<StatsResponse | null>(null);
-  let finishedFeeds = $state<FeedResponse[]>([]);
-  let saving = $state(false);
+    let lastFeedstartTime = $derived.by(() => {
+        if (finishedFeeds.length === 0) return null;
+        const now = new Date().toISOString();
+        const latest = finishedFeeds.reduce(
+        (latest, f) => (f.endTime && f.endTime > latest ? f.startTime : latest),
+        finishedFeeds[0].startTime ?? "");
+        return latest && latest <= now ? latest : null;
+    })
 
-  let babyId = $derived(babyStore.selectedId);
-  let hasPendingSave = $derived(leftTimer.isPendingSave || rightTimer.isPendingSave);
-  let showManualModal = $state(false);
+    $effect(() => {
+        if (!babyId) return;
+        initiateActiveFeed(babyId);
+        refreshHistoryAndStats(babyId);
+    })
 
-  $effect(() => {
-    if (!babyId) return;
-    initOngoingFeeds(babyId);
-    refreshHistoryAndStats(babyId);
-  });
-
-  let lastFeedEndTime = $derived.by(() => {
-    if (finishedFeeds.length === 0) return null;
-    const now = new Date().toISOString();
-    const latest = finishedFeeds.reduce(
-      (latest, f) => (f.endTime && f.endTime > latest ? f.endTime : latest),
-      finishedFeeds[0].endTime ?? "");
-    return latest && latest <= now ? latest : null;
-
-  });
-
-  async function refreshHistoryAndStats(id: number) {
-    const [feeds, statsResult] = await Promise.all([listFeeds(id), getStatsToday(id)]);
-    finishedFeeds = feeds.filter((f) => !f.ongoing);
-    stats = statsResult;
-  }
-
-  async function handleDelete(id: number) {
-    if (!babyId) return;
-    await deleteFeed(babyId, id);
-    await refreshHistoryAndStats(babyId);
-  }
-
-  async function handleSaveAll() {
-    saving = true;
-    try {
-      // Sauvegarde chaque côté effectivement figé — l'un, l'autre, ou les deux
-      const tasks: Promise<void>[] = [];
-      if (leftTimer.isPendingSave) tasks.push(leftTimer.save());
-      if (rightTimer.isPendingSave) tasks.push(rightTimer.save());
-      await Promise.all(tasks);
-      if (babyId) await refreshHistoryAndStats(babyId);
-    } finally {
-      saving = false;
+    async function refreshHistoryAndStats(babyId: number) {
+        const [ feeds, statsResult ] = await Promise.all([listOfFeeds(babyId), getStatsToday(babyId)]);
+        stats = statsResult;
+        finishedFeeds = feeds.filter((f) => !f.ongoing);
     }
+
+    async function handleToggle(side: "LEFT" | "RIGHT") {
+    if (!babyId) return;
+    await feedSession.toggleChrono(babyId, side);
+    
   }
 
-  function handleManualSaved() {
-    showManualModal = false;
-    if (babyId) refreshHistoryAndStats(babyId);
-  }
+    async function handleManualSaved() {
+        showManualModal = false;
+        if (babyId) refreshHistoryAndStats(babyId);
+    }
+
+    async function handleFinish() {
+        if (!babyId) return;
+        await feedSession.finish(babyId);
+        await refreshHistoryAndStats(babyId);
+    }
 </script>
 
 <main>
-  {#if !babyId}
-    <Card>
-      <p class="empty">Aucun bébé enregistré.</p>
-      <a href="/babies" class="link-button">Ajouter un bébé</a>
-    </Card>
-  {:else}
-    <Card>
-      <TimeSinceLastFeed {lastFeedEndTime} />
-    </Card>
-    <Card>
-      <div class="timers-row">
-        <SideTimerCard
-          breastSide="LEFT"
-          ongoing={!!leftTimer.current}
-          startTime={leftTimer.current?.startTime ?? null}
-          isPendingSave={leftTimer.isPendingSave}
-          frozenEndTime={leftTimer.frozenEndTime}
-          loading={leftTimer.isLoading}
-          syncError={leftTimer.hasSyncError}
-          onStart={() => startSide(babyId, "LEFT")}
-          onStopClock={() => leftTimer.stopClock()}
-        />
-        <SideTimerCard
-          breastSide="RIGHT"
-          ongoing={!!rightTimer.current}
-          startTime={rightTimer.current?.startTime ?? null}
-          isPendingSave={rightTimer.isPendingSave}
-          frozenEndTime={rightTimer.frozenEndTime}
-          loading={rightTimer.isLoading}
-          syncError={rightTimer.hasSyncError}
-          onStart={() => startSide(babyId, "RIGHT")}
-          onStopClock={() => rightTimer.stopClock()}
-        />
-      </div>
+    {#if !babyId}
+        <Card>
+            <p class="empty">Aucun bébé enregistré.</p>
+            <a href="/babies" class="link-button">Ajouter un bébé</a>
+        </Card>
+    {:else}
+        <Card>
+            <TimeSinceLastFeed {lastFeedstartTime} />
+        </Card>
+        <Card>
+        <div class="timers-row">
+            <SideTimerCard
+                breastSide="LEFT"
+                ongoing={feedSession.isRunning("LEFT")}
+                isPaused={feedSession.isPaused("LEFT")}
+                startTime={feedSession.entry("LEFT")?.startTime ?? null}
+                loading={feedSession.isLoading}
+                syncError={feedSession.hasSyncError}
+                onToggle={() => handleToggle("LEFT")}
+            />
+            <SideTimerCard
+                breastSide="RIGHT"
+                ongoing={feedSession.isRunning("RIGHT")}
+                isPaused={feedSession.isPaused("RIGHT")}
+                startTime={feedSession.entry("RIGHT")?.startTime ?? null}
+                loading={feedSession.isLoading}
+                syncError={feedSession.hasSyncError}
+                onToggle={() => handleToggle("RIGHT")}
+            />
+        </div>
 
-      {#if hasPendingSave}
-        <button class="save-all" disabled={saving} onclick={handleSaveAll}>
-          {saving ? "Enregistrement…" : "Enregistrer la tétée"}
-        </button>
-      {/if}
-      <button class="manual-entry" onclick={() => (showManualModal = true)}>
-        + Ajouter manuellement
-      </button>
-    </Card>
+        {#if feedSession.canFinish()}
+            <button class="finish-btn" disabled={feedSession.isLoading} onclick={() => handleFinish()}>
+                Terminer la tétée
+            </button>
+        {/if}
 
-    {#if showManualModal && babyId}
-      <ManualFeedModal {babyId} onClose={() => (showManualModal = false)} onSaved={handleManualSaved} />
-    {/if}
+        <button class="manual-entry" onclick={() => (showManualModal = true)}>+ Ajouter manuellement</button>
+    </Card>
 
     <Card title="Aujourd'hui">
       <StatsCards {stats} />
     </Card>
 
     <Card title="Historique">
-      <FeedHistory feeds={finishedFeeds} onDelete={handleDelete} />
+      <FeedHistory
+            feeds={finishedFeeds}
+            {babyId}
+            onChanged={() => babyId && refreshHistoryAndStats(babyId)} />
     </Card>
-  {/if}
+
+    {#if showManualModal && babyId}
+      <ManualFeedModal {babyId} onClose={() => (showManualModal = false)} onSaved={handleManualSaved} />
+    {/if}
+
+    {/if}
+
 </main>
 
 <style>
@@ -138,27 +126,14 @@
     max-width: 420px;
     margin: 0 auto;
   }
-  .timers-row {
+   .timers-row {
     display: flex;
     gap: 16px;
     width: 100%;
   }
-  .save-all {
-    width: 100%;
-    margin-top: 14px;
-    padding: 14px 0;
-    border-radius: 16px;
-    border: none;
-    background: var(--accent);
-    color: #fff;
-    font-weight: 600;
-    font-size: 15px;
-    cursor: pointer;
-  }
-  .save-all:disabled { opacity: 0.6; cursor: not-allowed; }
   .manual-entry {
     width: 100%;
-    margin-top: 10px;
+    margin-top: 2rem;
     padding: 11px 0;
     border-radius: 14px;
     border: 1.5px dashed var(--surface-border);
@@ -168,4 +143,15 @@
     font-size: 13.5px;
     cursor: pointer;
   }
+  .finish-btn {
+  width: 100%;
+  margin-top: 14px;
+  padding: 14px 0;
+  border-radius: 16px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
 </style>

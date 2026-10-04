@@ -4,43 +4,39 @@
   let {
     breastSide,
     ongoing,
+    isPaused,
     startTime,
-    isPendingSave,
-    frozenEndTime,
     loading,
     syncError,
-    onStart,
-    onStopClock,
+    onToggle,
   }: {
     breastSide: BreastSide;
-    ongoing: boolean;
+    ongoing: boolean | undefined;
+    isPaused: boolean;
     startTime: string | null;
-    isPendingSave: boolean;
-    frozenEndTime: string | null;
     loading: boolean;
     syncError: boolean;
-    onStart: () => void;
-    onStopClock: () => void;
+    onToggle: () => void;
   } = $props();
 
-  let elapsedMs = $state(0);
+  let elapsedInMs = $state(0);
 
-  $effect(() => {
-    if (isPendingSave && startTime && frozenEndTime) {
-      elapsedMs = new Date(frozenEndTime).getTime() - new Date(startTime).getTime();
-      return;
+  $effect(() => {    
+    // $inspect(`durationInSec -- ${durationInSeconds}`)
+    // $inspect(`elapseTime -- ${elapsedInMs}`)
+    // $inspect(`stattime --- ${startTime}`)
+    if (ongoing) {
+      const referenceTime = Date.now();
+      const tick = () => { elapsedInMs = startTime == null ? 0 : elapsedInMs + (Date.now() - referenceTime); };
+      tick();
+      const interval = setInterval(tick, 1000);
+      return () => clearInterval(interval);
+    } else if (!isPaused) {
+      elapsedInMs = 0;
     }
-    if (!ongoing || !startTime) {
-      elapsedMs = 0;
-      return;
-    }
-    const start = new Date(startTime).getTime();
-    elapsedMs = Date.now() - start;
-    const interval = setInterval(() => { elapsedMs = Date.now() - start; }, 1000);
-    return () => clearInterval(interval);
   });
 
-  function fmtDuration(ms: number): string {
+   function fmtDuration(ms: number): string {
     const totalSec = Math.floor(ms / 1000);
     const h = Math.floor(totalSec / 3600);
     const m = Math.floor((totalSec % 3600) / 60);
@@ -50,22 +46,23 @@
   }
 
   let label = $derived(breastSide === "LEFT" ? "Gauche" : "Droite");
-  let showDigits = $derived(ongoing || isPendingSave);
+  let buttonLabel = $derived(ongoing ? "Arrêter" : isPaused ? "Continuer" : "Démarrer");
+
 </script>
 
-<div class="side-timer" class:running={ongoing && !isPendingSave} class:pending={isPendingSave} class:left={breastSide === "LEFT"} class:right={breastSide === "RIGHT"}>
+<div class="side-timer" class:running={ongoing} class:pending={isPaused} class:left={breastSide === "LEFT"} class:right={breastSide === "RIGHT"}>
   <div class="ring">
-    <div class="digits">{showDigits ? fmtDuration(elapsedMs) : "00:00"}</div>
-    <div class="label">{label}{isPendingSave ? " · à enregistrer" : ""}</div>
+    <div class="digits">{ongoing || isPaused ? fmtDuration(elapsedInMs) : "00:00"}</div>
+    <div class="label">{label}{isPaused ? " · en pause" : ""}</div>
   </div>
 
   <button
     class="btn"
     class:stop={ongoing}
-    disabled={isPendingSave || (!ongoing && loading)}
-    onclick={ongoing ? onStopClock : onStart}
+    disabled={loading}
+    onclick={onToggle}
   >
-    {ongoing ? "Arrêter" : "Démarrer"}
+    {loading ? "…" : buttonLabel}
   </button>
 
   {#if syncError}

@@ -2,18 +2,42 @@ package com.nd2k.follow_up.feed.out.persistence;
 
 import com.nd2k.follow_up.feed.core.domain.BreastSide;
 import com.nd2k.follow_up.feed.core.domain.Feed;
+import com.nd2k.follow_up.feed.core.domain.FeedEntry;
 
-final class FeedMapper {
+import java.util.List;
+
+public final class FeedMapper {
 
     private FeedMapper() {}
 
-    static FeedEntity toEntity(Feed feed) {
-        BreastSideEntity breastSideEntity = BreastSideEntity.valueOf(feed.getBreastSide().name());
-        return new FeedEntity(feed.getId(), feed.getBabyId(), feed.getSessionId(), breastSideEntity, feed.getStartTime(), feed.getEndTime());
+    public static FeedEntryEntity toEntity(FeedEntry feedEntry, Long feedId, Long babyId) {
+        BreastSideEntity breastSideEntity = BreastSideEntity.valueOf(feedEntry.getBreastSide().name());
+        return new FeedEntryEntity(
+                feedEntry.getId(),
+                feedId,
+                babyId,
+                breastSideEntity,
+                feedEntry.getStartTime(),
+                feedEntry.durationInSeconds(),
+                feedEntry.getActiveSince(),
+                feedEntry.getLastStoppedAt());
     }
 
-    static Feed toDomain(FeedEntity feedEntity) {
-        BreastSide breastSide = BreastSide.valueOf(feedEntity.getBreastSide().name());
-        return new Feed(feedEntity.getId(), feedEntity.getBabyId(), feedEntity.getSessionId(), breastSide, feedEntity.getStartTime(), feedEntity.getEndTime());
+    public static Feed toDomain(AggregateFeedEntity aggregateFeedEntity, List<FeedEntryEntity> listOfEntriesEntity) {
+
+        return new Feed(
+                aggregateFeedEntity.getId(),
+                aggregateFeedEntity.getBabyId(),
+                listOfEntriesEntity.stream()
+                        .map(e -> FeedEntry.reconstitute(
+                                    e.getId(),
+                                    BreastSide.valueOf(e.getBreastSideEntity().name()),
+                                    e.getStartTime(),
+                                    e.getAccumulatedInSeconds(),
+                                    e.getActiveSince(),
+                                    e.getLastStoppedAt())
+                        )
+                        .toList(),
+                aggregateFeedEntity.getFinishedAt());
     }
 }

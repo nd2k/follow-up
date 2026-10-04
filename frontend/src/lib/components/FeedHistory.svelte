@@ -1,13 +1,36 @@
 <script lang="ts">
   import type { FeedResponse } from "#lib/types/feed.ts";
+  import type { DayGroup } from "#lib/types/feed.ts";
+  import FeedDetailsModal from "./FeedDetailsModal.svelte";
 
-  let {
+let {
     feeds,
-    onDelete,
+    babyId,
+    onChanged,
   }: {
     feeds: FeedResponse[];
-    onDelete: (id: number) => void;
+    babyId: number;
+    onChanged: () => void;
   } = $props();
+
+  let sorted = $derived([...feeds].sort((a, b) => b.startTime.localeCompare(a.startTime)));
+  let selectedFeed = $state<FeedResponse | null>(null);
+
+  let groups = $derived.by((): DayGroup[] => {
+    const byDay = new Map<string, FeedResponse[]>();
+    for (const feed of sorted) {
+      const key = dayKey(feed.startTime);
+      if (!byDay.has(key)) byDay.set(key, []);
+      byDay.get(key)!.push(feed);
+    }
+    return Array.from(byDay.entries())
+          .map(([key, dayFeeds]) => ({
+            key,
+            feeds: dayFeeds,
+            count: dayFeeds.length,
+            totalMinutes: dayFeeds.reduce((sum, f) => sum + f.entries.reduce((s, e) => s + (e.durationMinutes ?? 0), 0), 0),
+          }));
+  });
 
   function dayKey(iso: string): string {
     const d = new Date(iso);
@@ -16,11 +39,9 @@
 
   function dayHeading(key: string): string {
     const todayKey = dayKey(new Date().toISOString());
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayKey = dayKey(yesterday.toISOString());
-    if (key === todayKey) return "Aujourd'hui";
-    if (key === yesterdayKey) return "Hier";
+    const yesterday = new Date(); yesterday.setDate(yesterday.getDate() - 1);
+     if (key === todayKey) return "Aujourd'hui";
+    if (key === dayKey(yesterday.toISOString())) return "Hier";
     const [y, m, d] = key.split("-");
     return `${d}/${m}/${y}`;
   }
@@ -29,133 +50,72 @@
     return new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
   }
 
+  function delayToNext(currentIndex: number): number | null {
+    if (currentIndex === 0) return null;
+    const current = sorted[currentIndex];
+    const next = sorted[currentIndex - 1];
+    if (!current.endTime) return null;
+    return new Date(next.startTime).getTime() - new Date(current.startTime).getTime();
+  }
+
   function fmtDelay(ms: number): string {
     const totalMin = Math.round(ms / 60000);
-    const h = Math.floor(totalMin / 60);
-    const m = totalMin % 60;
-    if (h > 0) return `${h}h${String(m).padStart(2, "0")}`;
-    return `${m} min`;
+    const h = Math.floor(totalMin / 60), m = totalMin % 60;
+    return h > 0 ? `${h}h${String(m).padStart(2, "0")}` : `${m} min`;
   }
 
-  interface SessionRow {
-    dayKey: string;
-    sessionId: number;
-    startTime: string;
-    endTime: string; // fin la plus tardive parmi les côtés de la session
-    feeds: FeedResponse[];
-    delayToNext: number | null; // ms depuis la fin de la session précédente, null pour la toute première
-  }
-
-  // Construit la séquence globale des sessions, triée du plus ancien au plus récent,
-  // pour que le calcul de délai traverse correctement les frontières de jour.
-  let sessionRows = $derived.by((): SessionRow[] => {
-    const bySession = new Map<number, FeedResponse[]>();
-    for (const feed of feeds) {
-      if (!bySession.has(feed.sessionId)) bySession.set(feed.sessionId, []);
-      bySession.get(feed.sessionId)!.push(feed);
-    }
-
-    const sessions = Array.from(bySession.entries())
-      .map(([sessionId, sessionFeeds]) => {
-        const sorted = [...sessionFeeds].sort((a, b) => a.startTime.localeCompare(b.startTime));
-        const latestEnd = sessionFeeds.reduce(
-          (latest, f) => (f.endTime && f.endTime > latest ? f.endTime : latest),
-          sessionFeeds[0].endTime ?? sessionFeeds[0].startTime
-        );
-        return {
-          sessionId,
-          startTime: sorted[0].startTime,
-          endTime: latestEnd,
-          feeds: sorted,
-          dayKey: dayKey(sorted[0].startTime),
-        };
-      })
-      .sort((a, b) => a.startTime.localeCompare(b.startTime)); // chronologique croissant
-
-    return sessions.map((session, i) => ({
-      ...session,
-      delayToNext:
-        i === sessions.length - 1 ? null : new Date(sessions[i + 1].startTime).getTime() - new Date(session.endTime).getTime(),
-    }));
-  });
-
-  // Regroupe par jour pour l'affichage, en conservant l'ordre décroissant (plus récent en premier)
-  interface DayGroup {
-    key: string;
-    rows: SessionRow[];
-    totalMinutes: number;
-    count: number;
-  }
-
-  let groups = $derived.by((): DayGroup[] => {
-    const byDay = new Map<string, SessionRow[]>();
-    for (const row of sessionRows) {
-      if (!byDay.has(row.dayKey)) byDay.set(row.dayKey, []);
-      byDay.get(row.dayKey)!.push(row);
-    }
-
-    return Array.from(byDay.entries())
-      .map(([key, rows]) => {
-        const allFeedsOfDay = rows.flatMap((r) => r.feeds);
-        return {
-          key,
-          rows: [...rows].reverse(), // plus récent en premier au sein du jour
-          totalMinutes: allFeedsOfDay.reduce((sum, f) => sum + (f.durationMinutes ?? 0), 0),
-          count: allFeedsOfDay.length,
-        };
-      })
-      .sort((a, b) => b.key.localeCompare(a.key)); // jours les plus récents en premier
-  });
 </script>
 
 <div class="history">
-  <h2>Historique</h2>
-
   {#if groups.length === 0}
     <div class="empty">Aucune tétée enregistrée pour l'instant.</div>
   {:else}
     {#each groups as group (group.key)}
-      <div class="day-group">
-        <div class="day-heading">
-          <span>{dayHeading(group.key)}</span>
-          <span>{group.count} tétées · {group.totalMinutes} min</span>
-        </div>
-        {#each group.rows as session (session.sessionId)}
-          {#if session.delayToNext !== null}
-            <div class="delay-divider">
-              <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
-                <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.3" />
-                <path d="M8 4.5V8l2.5 1.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
-              </svg>
-              <span>{fmtDelay(session.delayToNext)}</span>
+        <div class="day-group">
+            <div class="day-heading">
+                <span>{dayHeading(group.key)}</span>
+                <span>{group.count} tétées · {group.totalMinutes} min</span>
             </div>
-          {/if}
-          <div class="feed-entry">
-            <span class="feed-time">{fmtTime(session.startTime)}</span>
-            <div class="session-sides">
-              {#each session.feeds as feed (feed.id)}
-                <span class="side-chip" class:left={feed.breastSide === "LEFT"} class:right={feed.breastSide === "RIGHT"}>
-                  <span class="side-dot"></span>
-                  {feed.breastSide === "LEFT" ? "G" : "D"} · {feed.durationMinutes} min
-                  <button class="feed-delete" aria-label="Supprimer" onclick={() => onDelete(feed.id)}>✕</button>
-                </span>
-              {/each}
-            </div>
-          </div>
-        {/each}
-      </div>
+            {#each group.feeds as feed (feed.id)}
+               {@const globalIndex = sorted.findIndex((f) => f.id === feed.id)}
+               {#if delayToNext(globalIndex) !== null}
+                <div class="delay-divider">
+                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none">
+                    <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.3" />
+                    <path d="M8 4.5V8l2.5 1.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" />
+                  </svg>
+                  <span>{fmtDelay(delayToNext(globalIndex)!)}</span>
+                </div>
+              {/if}
+               <button class="feed-entry" onclick={() => (selectedFeed = feed)}>
+                <span class="feed-time">{fmtTime(feed.startTime)}</span>
+                <div class="session-sides">
+                  {#each feed.entries as entry (entry.id)}
+                    <span class="side-chip" class:left={entry.breastSide === "LEFT"} class:right={entry.breastSide === "RIGHT"}>
+                      <span class="side-dot"></span>
+                      {entry.breastSide === "LEFT" ? "G" : "D"} · {entry.durationSeconds} min
+                    </span>
+                  {/each}
+                </div>
+              </button>
+            {/each}
+         </div>
     {/each}
+  {/if}
+
+  {#if selectedFeed}
+    <FeedDetailsModal
+      {babyId}
+      feed={selectedFeed}
+      onClose={() => (selectedFeed = null)}
+      onSaved={() => { selectedFeed = null; onChanged(); }}
+    />
   {/if}
 </div>
 
+
 <style>
   .history { width: 100%; }
-  .history h2 {
-    font-family: "Fraunces", serif;
-    font-weight: 500;
-    font-size: 16px;
-    margin: 0 0 12px;
-  }
   .day-group { margin-bottom: 20px; }
   .day-heading {
     font-size: 12.5px;
@@ -211,16 +171,6 @@
   .side-chip.left { background: var(--left-soft); color: var(--left); }
   .side-chip.right { background: var(--right-soft); color: var(--right); }
   .side-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
-  .feed-delete {
-    background: none;
-    border: none;
-    color: currentColor;
-    opacity: 0.6;
-    font-size: 13px;
-    cursor: pointer;
-    padding: 0 0 0 2px;
-    line-height: 1;
-  }
   .empty {
     text-align: center;
     color: var(--muted);
@@ -239,4 +189,22 @@
   .delay-divider svg {
     flex-shrink: 0;
   }
+  .feed-entry {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg);
+    border: 1px solid var(--surface-border);
+    border-radius: 12px;
+    padding: 10px 14px;
+    margin-bottom: 6px;
+    font-size: 14px;
+    flex-wrap: wrap;
+    width: 100%;
+    cursor: pointer;
+    color: var(--text);
+    text-align: left;
+    font-family: inherit;
+  }
+  .feed-entry:active { opacity: 0.85; }
 </style>

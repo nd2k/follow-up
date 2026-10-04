@@ -1,3 +1,7 @@
+import type { FeedResponse, FeedEntryResponse } from "#lib/types/feed.ts";
+
+export type ViewMode = "week" | "month";
+
 export interface CalendarDay {
   date: Date;
   isCurrentMonth: boolean;
@@ -13,10 +17,8 @@ export function buildMonthGrid(year: number, month: number): CalendarDay[] {
   const firstOfMonth = new Date(year, month, 1);
   const startOffset = (firstOfMonth.getDay() + 6) % 7;
   const gridStart = new Date(year, month, 1 - startOffset);
-
   const today = new Date();
   const todayKey = dayKey(today);
-
   const days: CalendarDay[] = [];
   for (let i = 0; i < 42; i++) {
     const d = new Date(gridStart);
@@ -69,3 +71,18 @@ export const MONTH_LABELS = [
   "Janvier", "Février", "Mars", "Avril", "Mai", "Juin",
   "Juillet", "Août", "Septembre", "Octobre", "Novembre", "Décembre",
 ];
+
+export function flattenEntries(feeds: FeedResponse[]): FeedEntryResponse[] {
+  return feeds.flatMap((f) =>
+    f.entries.map((e) => ({
+      id: e.id,
+      babyId: f.babyId,
+      breastSide: e.breastSide,
+      startTime: e.startTime,
+      endTime: new Date(new Date(e.startTime).getTime() + e.durationSeconds * 1000).toISOString(),
+      ongoing: e.ongoing,
+      durationSeconds: e.durationSeconds,
+      durationMinutes: e.durationMinutes,
+    }))
+  );
+}

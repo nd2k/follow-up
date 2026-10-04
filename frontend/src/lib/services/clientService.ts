@@ -1,32 +1,28 @@
-import { auth } from "#lib/stores/auth.svelte.ts";
+import { ROOT_BASE } from "#lib/constants.ts";
+import { authentication } from "#lib/stores/auth.svelte.ts";
 
-const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8080";
-
-async function rawFetch(path: string, options: RequestInit): Promise<Response> {
-  return fetch(`${API_BASE}${path}`, {
+async function executeCall(path: string, options: RequestInit): Promise<Response> {
+  return fetch(`${ROOT_BASE}${path}`, {
     ...options,
     headers: {
       "Content-Type": "application/json",
-      ...(auth.accessToken ? { Authorization: `Bearer ${auth.accessToken}` } : {}),
+      ...(authentication.accessToken ? { Authorization: `Bearer ${authentication.accessToken}` } : {}),
       ...options.headers,
     },
   });
 }
 
 export async function apiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
-  let res = await rawFetch(path, options);
-  console.log(res);
-  
-  if (res.status === 401) {
-    const refreshed = await auth.tryRefresh();
-    if (refreshed) {
-      res = await rawFetch(path, options);
+    let response = await executeCall(path, options);
+    if (response.status === 401) {
+        const isRefreshed = await authentication.tryRefresh();
+        if (isRefreshed) {
+            response = await executeCall(path, options);
+        }
     }
-  }
-  if (!res.ok) {
-    const body = await res.json().catch(() => ({}));
-    throw new Error(body.error ?? `Erreur ${res.status}`);
-  }
-  return res.status === 204 ? (undefined as T) : res.json();
+    if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.error ?? `Error ${response.status}`);
+    }
+    return response.status === 204 ? (undefined as T) : response.json();
 }
-

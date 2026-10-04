@@ -5,4 +5,4 @@ import jakarta.validation.constraints.NotEmpty;
 
 import java.util.List;
 
-public record RecordManualFeedRequest(@NotEmpty @Valid List<ManualSideEntryDto> entries) {}
+public record RecordManualFeedRequest(@NotEmpty @Valid List<ManualBreastSideEntry> entries) {}

@@ -5,7 +5,7 @@ import com.nd2k.follow_up.feed.core.port.out.BabyAccessCheckPort;
 import org.springframework.stereotype.Component;
 
 @Component
-class BabyAccessCheckAdapter implements BabyAccessCheckPort {
+public class BabyAccessCheckAdapter implements BabyAccessCheckPort {
 
     private final CheckBabyAccessUseCase checkBabyAccessUseCase;
 

@@ -5,6 +5,5 @@ import com.nd2k.follow_up.feed.core.domain.Feed;
 import java.util.List;
 
 public interface ListFeedsUseCase {
-
-    List<Feed> listAllFeed(Long babyId, Long requestingUserId);
+    List<Feed> listForBaby(Long babyId, Long requestingUserId);
 }
