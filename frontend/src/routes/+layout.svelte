@@ -5,31 +5,43 @@
 	import { page } from '$app/state';
 
     import AppHeader from '#lib/components/AppHeader.svelte';
-    // import BabyTabs from '#lib/components/BabyTabs.svelte';
+    import BabiesTab from '#lib/components/BabiesTab.svelte';
 	import { onMount } from 'svelte';
-	// import { theme } from '#lib/stores/theme.svelte.ts';
-	// import { checkHealth } from '#lib/services/healthService.ts';
+	import { theme } from '#lib/stores/theme.svelte.ts';
 	import { goto } from '$app/navigation';
 	import { checkHealth } from '#lib/services/healthService.ts';
+	import AppHero from '#lib/components/AppHero.svelte';
+    import { babyStore } from '#lib/stores/baby.svelte.ts';
 
     let { children } = $props();
     let serverIsUp = $state(false);
     let appIsReady = $derived(serverIsUp && authentication.status === "AUTHENTICATED" && page.url.pathname !== "/login");
     let keepAliveInterval: ReturnType<typeof setInterval> | undefined;
+    let babiesAreLoaded = false;
 
     onMount(() => {
-        //theme.init();
+        theme.init();
         (async() => {
             await authentication.init();
             serverIsUp = true;
+            if (authentication.status === "AUTHENTICATED") {
+                await babyStore.refresh();
+            }
         })();
-        console.log(serverIsUp);
-        
         keepAliveInterval = setInterval(() => {
             checkHealth().catch(() => {});
         }, 10 * 60 * 1000);
         return () => clearInterval(keepAliveInterval);
     })
+
+    $effect(() => {
+        if (authentication.status === "AUTHENTICATED" && !babiesAreLoaded) {
+            babiesAreLoaded = true;
+            babyStore.refresh();
+        } else if (authentication.status === "UNAUTHENTICATED") {
+            babiesAreLoaded = false;
+        }
+    });
 
     $effect(() => {
         if (!serverIsUp) return;
@@ -49,6 +61,8 @@
 {#if serverIsUp}
     {#if appIsReady}
         <AppHeader />
+        <AppHero />      
+        <BabiesTab />  
     {/if}
     {@render children()}
 {:else}

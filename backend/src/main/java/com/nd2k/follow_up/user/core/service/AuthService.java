@@ -35,7 +35,8 @@ public class AuthService implements LoginUseCase, RefreshTokenUseCase {
         }
         return new AuthTokens(
                 tokenPort.generateAccessToken(user.getId(), user.getEmail()),
-                tokenPort.generateRefreshToken(user.getId())
+                tokenPort.generateRefreshToken(user.getId()),
+                user.getName()
         );
     }
 
@@ -46,7 +47,8 @@ public class AuthService implements LoginUseCase, RefreshTokenUseCase {
                 .orElseThrow(() -> new InvalidTokenException("Utilisateur introuvable"));
         return new AuthTokens(
                 tokenPort.generateAccessToken(userId, user.getEmail()),
-                tokenPort.generateRefreshToken(userId)
+                tokenPort.generateRefreshToken(userId),
+                user.getName()
         );
     }
 }

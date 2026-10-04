@@ -7,4 +7,5 @@ export const AuthenticationStatus = {
 export interface AuthTokens {
   accessToken: string;
   refreshToken: string;
+  username: string;
 }

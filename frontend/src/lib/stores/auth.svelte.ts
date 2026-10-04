@@ -6,14 +6,17 @@ const REFRESH_TOKEN_KEY = "follow_up_refresh_token";
 type AuthStatus = typeof AuthenticationStatus[keyof typeof AuthenticationStatus];
 
 let accessToken = $state<string | null>(null);
+let username = $state<string | null>(null);
 let status = $state<AuthStatus>("UNKNOWN");
 
 export const authentication = {
     get accessToken() { return accessToken; },
+    get username() { return username; },
     get status() { return status; },
 
     manageTokens(tokens: AuthTokens) {
         accessToken = tokens.accessToken;
+        username = tokens.username;
         localStorage.setItem(REFRESH_TOKEN_KEY, tokens.refreshToken);
         status = "AUTHENTICATED";
     },
