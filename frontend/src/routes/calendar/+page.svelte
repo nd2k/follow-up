@@ -75,9 +75,9 @@
 <div class="scroll-container" bind:this={scrollContainer}>
 
   <section class="snap-section week-section" bind:this={weekSection}>
-    <button class="scroll-hint up" onclick={() => scrollContainer.scrollTo({ top: 0, behavior: "smooth" })}>
-      ↑ Mois
-    </button>
+  <button class="scroll-hint down" onclick={() => weekSection.scrollIntoView({ behavior: "smooth" })}>
+        Mois ↓
+      </button>
     {#if babyId}
       <div class="week-wrap">
         <WeekTimelineGrid feeds={flattenEntries(weekFeeds)} {weekStart} onPrev={prevWeek} onNext={nextWeek} />
@@ -93,11 +93,14 @@
         <MonthCalendar feeds={monthFeeds} {year} {month} {selectedDayKey} onSelectDay={selectDay} onPrev={prevMonth} onNext={nextMonth} />
         <DayTimeline feeds={selectedDayFeeds} dayKey={selectedDayKey} />
       </div>
-      <button class="scroll-hint down" onclick={() => weekSection.scrollIntoView({ behavior: "smooth" })}>
-        Semaine ↓
-      </button>
     {/if}
+    <button class="scroll-hint up" onclick={() => scrollContainer.scrollTo({ top: 0, behavior: "smooth" })}>
+      ↑ Semaine
+    </button>
   </section>
+  <button class="scroll-hint up" onclick={() => scrollContainer.scrollTo({ top: 0, behavior: "smooth" })}>
+      ← Retour au suivi
+    </button>
 </div>
 
 <style>
