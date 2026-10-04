@@ -24,7 +24,6 @@
   let weekSection: HTMLDivElement;
   let scrollContainer: HTMLDivElement;
 
-  // Deux gardes indépendantes, une par plage — les deux requêtes vivent en parallèle désormais.
   let latestWeekRequestId = 0;
   let latestMonthRequestId = 0;
 
@@ -69,7 +68,6 @@
   );
 
   onMount(() => {
-    // Positionne directement sur la semaine au chargement — le mois reste accessible en scrollant vers le haut.
     weekSection.scrollIntoView({ behavior: "instant" as ScrollBehavior });
   });
 </script>
@@ -79,6 +77,17 @@
     {#if !babyId}
       <p class="empty">Aucun bébé enregistré.</p>
     {:else}
+     <section class="snap-section week-section" bind:this={weekSection}>
+        <button class="scroll-hint up" onclick={() => scrollContainer.scrollTo({ top: 0, behavior: "smooth" })}>
+          ↑ Mois
+        </button>
+        {#if babyId}
+          <div class="week-wrap">
+            <WeekTimelineGrid feeds={flattenEntries(weekFeeds)} {weekStart} onPrev={prevWeek} onNext={nextWeek} />
+          </div>
+        {/if}
+      </section>
+
       <div class="month-wrap">
         <MonthCalendar feeds={monthFeeds} {year} {month} {selectedDayKey} onSelectDay={selectDay} onPrev={prevMonth} onNext={nextMonth} />
         <DayTimeline feeds={selectedDayFeeds} dayKey={selectedDayKey} />
@@ -86,17 +95,6 @@
       <button class="scroll-hint down" onclick={() => weekSection.scrollIntoView({ behavior: "smooth" })}>
         Semaine ↓
       </button>
-    {/if}
-  </section>
-
-  <section class="snap-section week-section" bind:this={weekSection}>
-    <button class="scroll-hint up" onclick={() => scrollContainer.scrollTo({ top: 0, behavior: "smooth" })}>
-      ↑ Mois
-    </button>
-    {#if babyId}
-      <div class="week-wrap">
-        <WeekTimelineGrid feeds={flattenEntries(weekFeeds)} {weekStart} onPrev={prevWeek} onNext={nextWeek} />
-      </div>
     {/if}
   </section>
 </div>
