@@ -10,4 +10,5 @@ public interface AggregateFeedJpaRepository extends JpaRepository<AggregateFeedE
 
     List<AggregateFeedEntity> findByBabyId(Long babyId);
     Optional<AggregateFeedEntity> findById(@NonNull Long feedId);
+    Optional<AggregateFeedEntity> findFirstByBabyIdAndFinishedAtIsNull(Long babyId);
 }

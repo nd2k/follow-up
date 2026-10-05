@@ -15,4 +15,5 @@ public interface FeedRepositoryPort {
     List<Feed> findByBabyIdAndStartTimeBetween(Long babyId, Instant from,Instant to);
     void deleteEntry(Long entryId);
     void deleteFeed(Long feedId);
+    Optional<Feed> findOngoingByBabyId(Long babyId);
 }

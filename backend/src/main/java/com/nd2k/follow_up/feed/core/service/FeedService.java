@@ -24,13 +24,13 @@ import com.nd2k.follow_up.feed.core.port.out.FeedRepositoryPort;
 import org.jspecify.annotations.NonNull;
 import org.springframework.stereotype.Service;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -46,8 +46,6 @@ public class FeedService implements StartFeedEntryUseCase,
         FinishedFeedEntryUseCase,
         EditFeedEntryUseCase,
         AddEntryToFeedUseCase {
-
-    private static final long ATTACH_GAP_MINUTES = 10;
 
     private final FeedRepositoryPort feedRepositoryPort;
     private final BabyAccessCheckPort babyAccessCheckPort;
@@ -142,20 +140,24 @@ public class FeedService implements StartFeedEntryUseCase,
         Instant startTime = clampToNow(clientStartTime != null
                 ? clientStartTime
                 : Instant.now());
-        FeedEntry newEntry = FeedEntry.start(breastSide, startTime);
-        Feed targetEntry = feedRepositoryPort.findMostRecentByBabyId(babyId)
-                .filter(Feed::isOngoing)
-                .filter(lastFeed -> {
-                    Instant lastActivity = lastFeed.isOngoing() ? lastFeed.getStartTime() : lastFeed.getEndTime();
-                    return Duration.between(lastActivity, startTime).toMinutes() <= ATTACH_GAP_MINUTES;
-                })
-                .map(existingFeed -> {
-                    List<FeedEntry> mergedFeedEntries = new ArrayList<>(existingFeed.getEntries());
-                    mergedFeedEntries.add(newEntry);
-                    return existingFeed.withEntries(mergedFeedEntries);
-                })
-                .orElseGet(() -> Feed.create(babyId, newEntry, null));
-        return feedRepositoryPort.save(targetEntry);
+        Optional<Feed> ongoing = feedRepositoryPort.findOngoingByBabyId(babyId);
+        if (ongoing.isPresent()) {
+            Feed feed = ongoing.get();
+            Optional<FeedEntry> existingForSide = feed.getEntries().stream()
+                    .filter(e -> e.getBreastSide() == breastSide)
+                    .findFirst();
+            if (existingForSide.isPresent()) {
+                FeedEntry entry = existingForSide.get();
+                if (entry.isOngoing()) {
+                    return feed;
+                }
+                List<FeedEntry> updated = feed.getEntries().stream()
+                        .map(e -> e.getId().equals(entry.getId()) ? e.resume(startTime) : e)
+                        .toList();
+                return feedRepositoryPort.save(feed.withEntries(updated));
+            }
+        }
+        return feedRepositoryPort.save(Feed.create(babyId, FeedEntry.start(breastSide, startTime), null));
     }
 
     @Override

@@ -99,4 +99,10 @@ public class FeedPersistenceAdapter implements FeedRepositoryPort {
     public void deleteFeed(Long feedId) {
         aggregateFeedJpaRepository.deleteById(feedId);
     }
+
+    @Override
+    public Optional<Feed> findOngoingByBabyId(Long babyId) {
+        return aggregateFeedJpaRepository.findFirstByBabyIdAndFinishedAtIsNull(babyId)
+                .map(agg -> toDomain(agg, feedEntryJpaRepository.findByFeedId(agg.getId())));
+    }
 }
