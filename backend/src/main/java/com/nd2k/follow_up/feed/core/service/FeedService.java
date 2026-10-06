@@ -130,7 +130,7 @@ public class FeedService implements StartFeedEntryUseCase,
                 .toList();
         List<SideEntry> sideEntries = sortEntriesPerLastStoppedTime(entries);
         Instant endTime = sideEntries.getFirst().endTime();
-        Feed feed = Feed.create(babyId, feedEntries.getFirst(), endTime).withEntries(feedEntries);
+        Feed feed = Feed.create(null, babyId, feedEntries.getFirst(), endTime).withEntries(feedEntries);
         return feedRepositoryPort.save(feed);
     }
 
@@ -156,8 +156,9 @@ public class FeedService implements StartFeedEntryUseCase,
                         .toList();
                 return feedRepositoryPort.save(feed.withEntries(updated));
             }
+            return feedRepositoryPort.save(Feed.create(ongoing.get().getId(), babyId, FeedEntry.start(breastSide, startTime), null));
         }
-        return feedRepositoryPort.save(Feed.create(babyId, FeedEntry.start(breastSide, startTime), null));
+        return feedRepositoryPort.save(Feed.create(null, babyId, FeedEntry.start(breastSide, startTime), null));
     }
 
     @Override

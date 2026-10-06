@@ -10,7 +10,6 @@ public interface FeedRepositoryPort {
 
     Feed save(Feed feed);
     Optional<Feed> findById(Long feedId);
-    Optional<Feed> findMostRecentByBabyId(Long babyId);
     List<Feed> findAllByBabyId(Long babyId);
     List<Feed> findByBabyIdAndStartTimeBetween(Long babyId, Instant from,Instant to);
     void deleteEntry(Long entryId);

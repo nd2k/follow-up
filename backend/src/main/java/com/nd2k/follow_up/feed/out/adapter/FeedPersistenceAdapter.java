@@ -55,17 +55,6 @@ public class FeedPersistenceAdapter implements FeedRepositoryPort {
     }
 
     @Override
-    public Optional<Feed> findMostRecentByBabyId(Long babyId) {
-        Optional<FeedEntryEntity> firstByBabyIdOrderByStartTimeDesc = feedEntryJpaRepository.findFirstByBabyIdOrderByStartTimeDesc(babyId);
-        if (firstByBabyIdOrderByStartTimeDesc.isPresent()) {
-            Optional<AggregateFeedEntity> aggregateFeedEntity = aggregateFeedJpaRepository.findById(firstByBabyIdOrderByStartTimeDesc.get().getFeedId());
-            return aggregateFeedEntity.map(feedEntity -> FeedMapper.toDomain(feedEntity, List.of(firstByBabyIdOrderByStartTimeDesc.get())));
-        } else {
-            return Optional.empty();
-        }
-    }
-
-    @Override
     public List<Feed> findAllByBabyId(Long babyId) {
         List<AggregateFeedEntity> aggregates = aggregateFeedJpaRepository.findByBabyId(babyId);
         List<Long> ids = aggregates.stream().map(AggregateFeedEntity::getId).toList();
