@@ -37,7 +37,7 @@ export interface SessionRow {
 export interface DayGroup {
     key: string; 
     feeds: FeedResponse[]; 
-    totalMinutes: number; 
+    totalSeconds: number; 
     count: number;
 }
 

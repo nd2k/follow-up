@@ -28,7 +28,10 @@ let {
             key,
             feeds: dayFeeds,
             count: dayFeeds.length,
-            totalMinutes: dayFeeds.reduce((sum, f) => sum + f.entries.reduce((s, e) => s + (e.durationMinutes ?? 0), 0), 0),
+            totalSeconds: dayFeeds.reduce(
+              (sum, f) => sum + f.entries.reduce((s, e) => s + e.durationSeconds, 0),
+              0
+            )
           }));
   });
 
@@ -64,6 +67,11 @@ let {
     return h > 0 ? `${h}h${String(m).padStart(2, "0")}` : `${m} min`;
   }
 
+  function fmtDurationShort(seconds: number): string {
+    if (seconds < 60) return `${seconds} s`;
+    return `${Math.round(seconds / 60)} min`;
+  }
+
 </script>
 
 <div class="history">
@@ -74,7 +82,7 @@ let {
         <div class="day-group">
             <div class="day-heading">
                 <span>{dayHeading(group.key)}</span>
-                <span>{group.count} tétées · {group.totalMinutes} min</span>
+                <span>{group.count} tétées · {fmtDurationShort(group.totalSeconds)}</span>
             </div>
             {#each group.feeds as feed (feed.id)}
                {@const globalIndex = sorted.findIndex((f) => f.id === feed.id)}
@@ -93,7 +101,7 @@ let {
                   {#each feed.entries as entry (entry.id)}
                     <span class="side-chip" class:left={entry.breastSide === "LEFT"} class:right={entry.breastSide === "RIGHT"}>
                       <span class="side-dot"></span>
-                      {entry.breastSide === "LEFT" ? "G" : "D"} · {entry.durationSeconds} min
+                      {entry.breastSide === "LEFT" ? "G" : "D"} · {fmtDurationShort(entry.durationSeconds)}
                     </span>
                   {/each}
                 </div>

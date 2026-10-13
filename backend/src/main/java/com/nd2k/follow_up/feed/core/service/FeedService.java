@@ -94,12 +94,9 @@ public class FeedService implements StartFeedEntryUseCase,
                 startOfDay,
                 endOfDay);
         int count = feedsOfDay.size();
-        long totalMinutes = (feedsOfDay.stream()
-                .mapToLong(Feed::totalDurationInSeconds)
-                .sum()) / 60;
-        long averageInMinutes = count > 0
-                ? totalMinutes / count
-                : 0;
+        long totalSeconds = feedsOfDay.stream().mapToLong(Feed::totalDurationInSeconds).sum();
+        long totalMinutes = Math.round(totalSeconds / 60.0);
+        long averageInMinutes = count > 0 ? Math.round(totalSeconds / 60.0 / count) : 0;
         return new FeedStats(count, totalMinutes, averageInMinutes);
     }
 

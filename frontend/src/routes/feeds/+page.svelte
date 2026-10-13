@@ -72,7 +72,7 @@
                 breastSide="LEFT"
                 ongoing={feedSession.isRunning("LEFT")}
                 isPaused={feedSession.isPaused("LEFT")}
-                startTime={feedSession.entry("LEFT")?.startTime ?? null}
+                startTime={feedSession.entry("LEFT")?.durationSeconds ?? 0}
                 loading={feedSession.isLoading}
                 syncError={feedSession.hasSyncError}
                 onToggle={() => handleToggle("LEFT")}
@@ -81,7 +81,7 @@
                 breastSide="RIGHT"
                 ongoing={feedSession.isRunning("RIGHT")}
                 isPaused={feedSession.isPaused("RIGHT")}
-                startTime={feedSession.entry("RIGHT")?.startTime ?? null}
+                startTime={feedSession.entry("RIGHT")?.durationSeconds ?? 0}
                 loading={feedSession.isLoading}
                 syncError={feedSession.hasSyncError}
                 onToggle={() => handleToggle("RIGHT")}

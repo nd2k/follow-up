@@ -13,7 +13,7 @@
     breastSide: BreastSide;
     ongoing: boolean | undefined;
     isPaused: boolean;
-    startTime: string | null;
+    startTime: number | null;
     loading: boolean;
     syncError: boolean;
     onToggle: () => void;
